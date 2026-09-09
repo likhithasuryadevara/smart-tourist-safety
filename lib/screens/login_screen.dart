@@ -57,14 +57,59 @@ class _LoginScreenState extends State<LoginScreen> {
         throw Exception('User profile not found.');
       }
 
-      // 4. Read the role
+      // 4. Read user information
       final data = userDoc.data();
+
       final role = data?['role'];
+      final approvalStatus = data?['approvalStatus'] ?? 'pending';
+
+      // Support the existing Firestore status field
+      final accountStatus =
+          data?['accountStatus'] ?? data?['status'] ?? 'active';
+
+      // Prefer status if it exists
+      final actualStatus = data?['status'] ?? accountStatus;
 
       print('UID: ${user.uid}');
       print('ROLE: $role');
+      print('APPROVAL STATUS: $approvalStatus');
+      print('ACCOUNT STATUS: $accountStatus');
 
-      // 5. Open the correct dashboard
+      // Check if tourist account is suspended
+      if (actualStatus == 'suspended') {
+        await FirebaseAuth.instance.signOut();
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Your account has been suspended. Please contact the administrator.',
+            ),
+          ),
+        );
+        return;
+      }
+
+      // 6. Check tourist approval status
+      if (role == 'tourist' && approvalStatus != 'approved') {
+        await FirebaseAuth.instance.signOut();
+
+        if (!mounted) return;
+
+        String message = 'Your account is waiting for admin approval.';
+
+        if (approvalStatus == 'rejected') {
+          message = 'Your account registration was rejected.';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+        return;
+      }
+
+      // 7. Open the correct dashboard
       if (role == 'admin') {
         Navigator.pushReplacement(
           context,
@@ -72,14 +117,28 @@ class _LoginScreenState extends State<LoginScreen> {
             builder: (context) => const AdminDashboard(),
           ),
         );
-      } else {
+      } else if (role == 'tourist') {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (context) => const TouristDashboard(),
           ),
         );
+      } else {
+        await FirebaseAuth.instance.signOut();
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Unauthorized account role. Please contact the administrator.',
+            ),
+          ),
+        );
       }
+
+    
     } on FirebaseAuthException catch (e) {
       String message = 'Login failed.';
 

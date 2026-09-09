@@ -18,7 +18,7 @@ class _TouristManagementState extends State<TouristManagement> {
           .collection('users')
           .doc(userId)
           .update({
-        'status': 'active',
+        'accountStatus': 'active',
         'approvalStatus': 'approved',
       });
 
@@ -47,7 +47,7 @@ class _TouristManagementState extends State<TouristManagement> {
           .collection('users')
           .doc(userId)
           .update({
-        'status': 'suspended',
+        'accountStatus': 'suspended',
       });
 
       if (!mounted) return;
@@ -150,7 +150,7 @@ class _TouristManagementState extends State<TouristManagement> {
         final activeCount = tourists.where((doc) {
           final data = doc.data() as Map<String, dynamic>;
 
-          return (data['status'] ?? 'active')
+          return (data['accountStatus'] ?? 'active')
                   .toString()
                   .toLowerCase() ==
               'active';
@@ -159,7 +159,7 @@ class _TouristManagementState extends State<TouristManagement> {
         final suspendedCount = tourists.where((doc) {
           final data = doc.data() as Map<String, dynamic>;
 
-          return (data['status'] ?? '')
+          return (data['accountStatus'] ?? '')
                   .toString()
                   .toLowerCase() ==
               'suspended';
@@ -291,9 +291,9 @@ class _TouristManagementState extends State<TouristManagement> {
                       data['bloodGroup'] ?? 'N/A';
 
                   final status =
-                      (data['status'] ?? 'active')
-                          .toString()
-                          .toLowerCase();
+                    (data['accountStatus'] ?? 'active')
+                        .toString()
+                        .toLowerCase();
 
                   final approvalStatus =
                       (data['approvalStatus'] ?? '')
@@ -609,7 +609,7 @@ class _TouristManagementState extends State<TouristManagement> {
                 ),
                 _detailRow(
                   'Status',
-                  data['status'] ?? 'active',
+                  data['accountStatus'] ?? 'active',
                 ),
                 _detailRow(
                   'Approval',

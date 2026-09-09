@@ -75,9 +75,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'nationality': _nationalityController.text.trim(),
         'bloodGroup': _bloodGroup,
         'role': 'tourist',
+        'accountStatus': 'active',
         'approvalStatus': 'pending',
         'digitalId': digitalId,
         'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
       });
 
       if (!mounted) return;
