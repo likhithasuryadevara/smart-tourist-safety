@@ -22,6 +22,61 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
 
+  Future<void> _forgotPassword() async {
+    final email = _emailController.text.trim();
+
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter your email address first.'),
+        ),
+      );
+      return;
+    }
+
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(
+        email: email,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Password reset email sent. Please check your inbox.',
+          ),
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+
+      String message = 'Unable to send password reset email.';
+
+      if (e.code == 'user-not-found') {
+        message = 'No account found with this email.';
+      } else if (e.code == 'invalid-email') {
+        message = 'Please enter a valid email address.';
+      } else if (e.code == 'too-many-requests') {
+        message = 'Too many requests. Please try again later.';
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Something went wrong: $e'),
+        ),
+      );
+    }
+  }
+
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -32,51 +87,89 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      // 1. Login with Firebase Authentication
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      print('LOGIN BUTTON PRESSED');
+      print('LOGIN EMAIL: ${_emailController.text.trim()}');
+
+      // 1. Firebase Authentication
+      final credential =
+          await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
-      if (!mounted) return;
+      print('FIREBASE SIGN-IN SUCCESS');
 
-      // 2. Get the currently logged-in user
-      final user = FirebaseAuth.instance.currentUser;
+      final user = credential.user;
 
       if (user == null) {
-        throw Exception('User not found.');
+        throw Exception('Firebase user is null.');
       }
 
-      // 3. Get the user's document from Firestore
+      print('LOGIN USER UID: ${user.uid}');
+      print('LOGIN USER EMAIL: ${user.email}');
+      print('LOGIN EMAIL VERIFIED: ${user.emailVerified}');
+
+      // 2. Get Firestore profile
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .get();
 
+      print('FIRESTORE DOCUMENT EXISTS: ${userDoc.exists}');
+
       if (!userDoc.exists) {
-        throw Exception('User profile not found.');
+        await FirebaseAuth.instance.signOut();
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'User profile not found in Firestore.',
+            ),
+          ),
+        );
+
+        return;
       }
 
-      // 4. Read user information
       final data = userDoc.data();
 
-      final role = data?['role'];
-      final approvalStatus = data?['approvalStatus'] ?? 'pending';
+      print('FIRESTORE DATA: $data');
 
-      // Support the existing Firestore status field
+      if (data == null) {
+        await FirebaseAuth.instance.signOut();
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'User profile data is empty.',
+            ),
+          ),
+        );
+
+        return;
+      }
+
+      // 3. Read role/status
+      final role = data['role'] ?? 'tourist';
+
+      final approvalStatus =
+          data['approvalStatus'] ?? 'pending';
+
       final accountStatus =
-          data?['accountStatus'] ?? data?['status'] ?? 'active';
+          data['accountStatus'] ??
+          data['status'] ??
+          'active';
 
-      // Prefer status if it exists
-      final actualStatus = data?['status'] ?? accountStatus;
+      print('LOGIN ROLE: $role');
+      print('LOGIN APPROVAL STATUS: $approvalStatus');
+      print('LOGIN ACCOUNT STATUS: $accountStatus');
 
-      print('UID: ${user.uid}');
-      print('ROLE: $role');
-      print('APPROVAL STATUS: $approvalStatus');
-      print('ACCOUNT STATUS: $accountStatus');
-
-      // Check if tourist account is suspended
-      if (actualStatus == 'suspended') {
+      // 4. Suspended account
+      if (accountStatus == 'suspended') {
         await FirebaseAuth.instance.signOut();
 
         if (!mounted) return;
@@ -88,58 +181,109 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         );
+
         return;
       }
 
-      // 6. Check tourist approval status
-      if (role == 'tourist' && approvalStatus != 'approved') {
-        await FirebaseAuth.instance.signOut();
+      // =====================================================
+      // ADMIN
+      // =====================================================
+
+      if (role == 'admin') {
+        print('ADMIN LOGIN SUCCESS');
+        print('OPENING ADMIN DASHBOARD');
 
         if (!mounted) return;
 
-        String message = 'Your account is waiting for admin approval.';
-
-        if (approvalStatus == 'rejected') {
-          message = 'Your account registration was rejected.';
-        }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
-        );
-        return;
-      }
-
-      // 7. Open the correct dashboard
-      if (role == 'admin') {
-        Navigator.pushReplacement(
-          context,
+        Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (context) => const AdminDashboard(),
           ),
         );
-      } else if (role == 'tourist') {
-        Navigator.pushReplacement(
-          context,
+
+        return;
+      }
+
+      // =====================================================
+      // TOURIST
+      // =====================================================
+
+      if (role == 'tourist') {
+
+        // Tourist email must be verified
+        if (!user.emailVerified) {
+          await FirebaseAuth.instance.signOut();
+
+          if (!mounted) return;
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Please verify your email address before logging in.',
+              ),
+            ),
+          );
+
+          return;
+        }
+
+        // Tourist must be approved
+        if (approvalStatus != 'approved') {
+          await FirebaseAuth.instance.signOut();
+
+          if (!mounted) return;
+
+          String message =
+              'Your account is waiting for admin approval.';
+
+          if (approvalStatus == 'rejected') {
+            message =
+                'Your account registration was rejected.';
+          }
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(message),
+            ),
+          );
+
+          return;
+        }
+
+        print('TOURIST LOGIN SUCCESS');
+        print('OPENING TOURIST DASHBOARD');
+
+        if (!mounted) return;
+
+        Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (context) => const TouristDashboard(),
           ),
         );
-      } else {
-        await FirebaseAuth.instance.signOut();
 
-        if (!mounted) return;
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Unauthorized account role. Please contact the administrator.',
-            ),
-          ),
-        );
+        return;
       }
 
-    
+      // =====================================================
+      // UNKNOWN ROLE
+      // =====================================================
+
+      await FirebaseAuth.instance.signOut();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Unauthorized account role. Please contact the administrator.',
+          ),
+        ),
+      );
     } on FirebaseAuthException catch (e) {
+
+      print('FIREBASE AUTH ERROR: ${e.code}');
+      print('FIREBASE AUTH MESSAGE: ${e.message}');
+
       String message = 'Login failed.';
 
       if (e.code == 'invalid-credential') {
@@ -150,34 +294,40 @@ class _LoginScreenState extends State<LoginScreen> {
         message = 'Incorrect password.';
       } else if (e.code == 'invalid-email') {
         message = 'Please enter a valid email.';
+      } else if (e.code == 'user-disabled') {
+        message = 'This account has been disabled.';
+      } else if (e.code == 'too-many-requests') {
+        message = 'Too many login attempts. Try again later.';
       }
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
+        SnackBar(
+          content: Text(message),
+        ),
       );
     } catch (e) {
+
+      print('LOGIN ERROR: $e');
+
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Something went wrong: $e'),
+          content: Text(
+            'Something went wrong: $e',
+          ),
         ),
       );
     } finally {
+
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
       }
     }
-  }
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
   }
 
   @override
@@ -273,6 +423,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   const SizedBox(height: 24),
 
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: _forgotPassword,
+                      child: const Text(
+                        'Forgot Password?',
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
                   SizedBox(
                     width: double.infinity,
                     height: 52,
@@ -286,7 +448,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                     ),
                   ),
-
+                  
                   const SizedBox(height: 16),
 
                   TextButton(

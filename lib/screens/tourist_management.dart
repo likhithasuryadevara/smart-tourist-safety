@@ -201,40 +201,79 @@ class _TouristManagementState extends State<TouristManagement> {
               const SizedBox(height: 24),
 
               // STAT CARDS
-              Row(
-                children: [
-                  Expanded(
-                    child: _statCard(
-                      title: 'Total Tourists',
-                      value: tourists.length.toString(),
-                      icon: Icons.people,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _statCard(
-                      title: 'Active',
-                      value: activeCount.toString(),
-                      icon: Icons.check_circle,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _statCard(
-                      title: 'Suspended',
-                      value: suspendedCount.toString(),
-                      icon: Icons.block,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _statCard(
-                      title: 'Pending',
-                      value: pendingCount.toString(),
-                      icon: Icons.pending,
-                    ),
-                  ),
-                ],
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isSmallScreen = constraints.maxWidth < 900;
+
+                  if (isSmallScreen) {
+                    return GridView.count(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      childAspectRatio: 2.8,
+                      children: [
+                        _statCard(
+                          title: 'Total Tourists',
+                          value: tourists.length.toString(),
+                          icon: Icons.people,
+                        ),
+                        _statCard(
+                          title: 'Active',
+                          value: activeCount.toString(),
+                          icon: Icons.check_circle,
+                        ),
+                        _statCard(
+                          title: 'Suspended',
+                          value: suspendedCount.toString(),
+                          icon: Icons.block,
+                        ),
+                        _statCard(
+                          title: 'Pending',
+                          value: pendingCount.toString(),
+                          icon: Icons.pending,
+                        ),
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: _statCard(
+                          title: 'Total Tourists',
+                          value: tourists.length.toString(),
+                          icon: Icons.people,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _statCard(
+                          title: 'Active',
+                          value: activeCount.toString(),
+                          icon: Icons.check_circle,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _statCard(
+                          title: 'Suspended',
+                          value: suspendedCount.toString(),
+                          icon: Icons.block,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _statCard(
+                          title: 'Pending',
+                          value: pendingCount.toString(),
+                          icon: Icons.pending,
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
 
               const SizedBox(height: 24),
@@ -540,33 +579,42 @@ class _TouristManagementState extends State<TouristManagement> {
     return Card(
       elevation: 2,
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         child: Row(
           children: [
             CircleAvatar(
               radius: 25,
               child: Icon(icon),
             ),
-            const SizedBox(width: 15),
-            Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: Colors.grey.shade600,
+
+            const SizedBox(width: 12),
+
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 14,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+
+                  const SizedBox(height: 5),
+
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),

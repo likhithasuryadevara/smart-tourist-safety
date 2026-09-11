@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -18,6 +19,39 @@ class TouristDashboard extends StatefulWidget {
 
 class _TouristDashboardState extends State<TouristDashboard> {
   static const Color bg = Color(0xFFF8FAFC);
+
+  String _name = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTouristName();
+  }
+
+  Future<void> _loadTouristName() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) return;
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (!mounted) return;
+
+      if (doc.exists) {
+        final data = doc.data();
+
+        setState(() {
+          _name = data?['name']?.toString() ?? '';
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading tourist name: $e');
+    }
+  }
 
   Future<void> _logout() async {
     await FirebaseAuth.instance.signOut();
@@ -43,7 +77,12 @@ class _TouristDashboardState extends State<TouristDashboard> {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
+
     final email = user?.email ?? 'tourist@example.com';
+
+    final name = _name.isNotEmpty
+        ? _name
+        : email.split('@').first;
 
     return Scaffold(
       backgroundColor: bg,
@@ -55,6 +94,7 @@ class _TouristDashboardState extends State<TouristDashboard> {
             return Column(
               children: [
                 TouristTopBar(
+                  name: name,
                   email: email,
                   onLogout: _logout,
                 ),
@@ -84,11 +124,14 @@ class _TouristDashboardState extends State<TouristDashboard> {
 
                             const SizedBox(height: 14),
 
-                            WelcomeCard(email: email),
-
+                            WelcomeCard(
+                              name: name,
+                            ),
+                            
                             const SizedBox(height: 14),
-
-                            StatsSection(desktop: desktop),
+                            StatsSection(
+                              desktop: desktop,
+                            ),
 
                             const SizedBox(height: 14),
 

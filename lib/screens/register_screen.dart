@@ -58,7 +58,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (user == null) {
         throw Exception('User account could not be created.');
       }
-
+      await user.updateDisplayName(
+        _nameController.text.trim(),
+      );
+      await user.sendEmailVerification();
       // 2. Create a digital ID
       final digitalId =
           'STS-${DateTime.now().millisecondsSinceEpoch.toString()}';

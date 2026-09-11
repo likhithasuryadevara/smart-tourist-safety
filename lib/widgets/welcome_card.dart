@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
 class WelcomeCard extends StatelessWidget {
-  final String email;
+  final String name;
 
   const WelcomeCard({
     super.key,
-    required this.email,
+    required this.name,
   });
 
   @override
@@ -54,7 +54,7 @@ class WelcomeCard extends StatelessWidget {
                 const SizedBox(height: 5),
 
                 Text(
-                  email,
+                  name,
                   style: const TextStyle(
                     color: Color(0xFF94A3B8),
                     fontSize: 12,

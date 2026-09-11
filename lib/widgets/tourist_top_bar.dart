@@ -1,64 +1,74 @@
 import 'package:flutter/material.dart';
 
 class TouristTopBar extends StatelessWidget {
+  final String name;
   final String email;
   final VoidCallback onLogout;
-
   const TouristTopBar({
     super.key,
+    required this.name,
     required this.email,
     required this.onLogout,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 650;
+
     return Container(
-      height: 75,
-      padding: const EdgeInsets.symmetric(horizontal: 18),
+      height: 72,
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 16 : 28,
+      ),
       decoration: const BoxDecoration(
-        color: Color(0xFF111C31),
+        color: Colors.white,
         border: Border(
           bottom: BorderSide(
-            color: Color(0xFF1E2B44),
+            color: Color(0xFFE5E7EB),
+            width: 1,
           ),
         ),
       ),
       child: Row(
         children: [
+          // LOGO
           Container(
-            width: 34,
-            height: 34,
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
               color: const Color(0xFF0F766E),
-              borderRadius: BorderRadius.circular(9),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(
               Icons.shield_rounded,
               color: Colors.white,
-              size: 19,
+              size: 23,
             ),
           ),
 
-          const SizedBox(width: 9),
+          const SizedBox(width: 12),
 
-          const Column(
+          // BRAND
+          Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+            children: const [
               Text(
                 'Smart Tourist Safety',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Color(0xFF111827),
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
+                  letterSpacing: -0.2,
                 ),
               ),
               SizedBox(height: 2),
               Text(
-                'Tourist Safety Dashboard',
+                'Tourist Dashboard',
                 style: TextStyle(
-                  color: Color(0xFF94A3B8),
-                  fontSize: 10,
+                  color: Color(0xFF6B7280),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
@@ -66,23 +76,106 @@ class TouristTopBar extends StatelessWidget {
 
           const Spacer(),
 
-          if (MediaQuery.of(context).size.width > 600)
-            Text(
-              email,
-              style: const TextStyle(
-                color: Color(0xFFCBD5E1),
-                fontSize: 11,
+          if (!isMobile) ...[
+            // ONLINE STATUS
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 11,
+                vertical: 7,
+              ),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDF4),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: const Color(0xFFDCFCE7),
+                ),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.circle,
+                    size: 8,
+                    color: Color(0xFF16A34A),
+                  ),
+                  SizedBox(width: 7),
+                  Text(
+                    'Online',
+                    style: TextStyle(
+                      color: Color(0xFF15803D),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
             ),
 
-          const SizedBox(width: 12),
-          IconButton(
-            tooltip: 'Logout',
-            onPressed: onLogout,
-            icon: const Icon(
-              Icons.logout_rounded,
-              color: Color(0xFFCBD5E1),
-              size: 20,
+            const SizedBox(width: 18),
+
+            // USER EMAIL
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 13,
+                vertical: 9,
+              ),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: const Color(0xFFE5E7EB),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.person_outline_rounded,
+                    size: 18,
+                    color: Color(0xFF64748B),
+                  ),
+                  const SizedBox(width: 8),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: 260,
+                    ),
+                    child: Text(
+                      name,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF334155),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(width: 10),
+          ],
+
+          // LOGOUT
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: onLogout,
+              child: Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF2F2),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: const Color(0xFFFEE2E2),
+                  ),
+                ),
+                child: const Icon(
+                  Icons.logout_rounded,
+                  color: Color(0xFFDC2626),
+                  size: 19,
+                ),
+              ),
             ),
           ),
         ],
