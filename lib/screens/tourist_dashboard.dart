@@ -97,6 +97,9 @@ class _TouristDashboardState extends State<TouristDashboard> {
                   name: name,
                   email: email,
                   onLogout: _logout,
+                  onProfile: () {
+                    Navigator.of(context).pushNamed('/tourist-profile');
+                  },
                 ),
 
                 Expanded(

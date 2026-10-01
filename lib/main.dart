@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
 import 'screens/login_screen.dart';
+import 'screens/tourist_profile.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,6 +32,10 @@ class MyApp extends StatelessWidget {
       ),
 
       home: const LoginScreen(),
+
+      routes: {
+        '/tourist-profile': (context) => const TouristProfile(),
+      },
     );
   }
 }

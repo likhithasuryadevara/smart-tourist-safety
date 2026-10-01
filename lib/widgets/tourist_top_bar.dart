@@ -4,11 +4,13 @@ class TouristTopBar extends StatelessWidget {
   final String name;
   final String email;
   final VoidCallback onLogout;
+  final VoidCallback onProfile;
   const TouristTopBar({
     super.key,
     required this.name,
     required this.email,
     required this.onLogout,
+    required this.onProfile,
   });
 
   @override
@@ -78,35 +80,54 @@ class TouristTopBar extends StatelessWidget {
 
           if (!isMobile) ...[
             // ONLINE STATUS
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 11,
-                vertical: 7,
-              ),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0FDF4),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: const Color(0xFFDCFCE7),
-                ),
-              ),
-              child: const Row(
-                children: [
-                  Icon(
-                    Icons.circle,
-                    size: 8,
-                    color: Color(0xFF16A34A),
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: onProfile,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 13,
+                    vertical: 9,
                   ),
-                  SizedBox(width: 7),
-                  Text(
-                    'Online',
-                    style: TextStyle(
-                      color: Color(0xFF15803D),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: const Color(0xFFE5E7EB),
                     ),
                   ),
-                ],
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.person_outline_rounded,
+                        size: 18,
+                        color: Color(0xFF64748B),
+                      ),
+                      const SizedBox(width: 8),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          maxWidth: 260,
+                        ),
+                        child: Text(
+                          name,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFF334155),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        size: 17,
+                        color: Color(0xFF94A3B8),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
 
@@ -138,7 +159,7 @@ class TouristTopBar extends StatelessWidget {
                       maxWidth: 260,
                     ),
                     child: Text(
-                      name,
+                      email,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Color(0xFF334155),
