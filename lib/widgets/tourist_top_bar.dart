@@ -15,7 +15,7 @@ class TouristTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 650;
+    final isMobile = MediaQuery.of(context).size.width < 900;
 
     return Container(
       height: 72,
@@ -153,7 +153,7 @@ class TouristTopBar extends StatelessWidget {
                     size: 18,
                     color: Color(0xFF64748B),
                   ),
-                  const SizedBox(width: 8),
+                 const SizedBox(width: 8),
                   ConstrainedBox(
                     constraints: const BoxConstraints(
                       maxWidth: 260,

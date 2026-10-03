@@ -9,6 +9,9 @@ import '../widgets/quick_actions.dart';
 import '../widgets/stats_section.dart';
 import '../widgets/tourist_top_bar.dart';
 import '../widgets/welcome_card.dart';
+import 'sos_countdown_screen.dart';
+import 'sos_history_screen.dart';
+
 
 class TouristDashboard extends StatefulWidget {
   const TouristDashboard({super.key});
@@ -21,6 +24,20 @@ class _TouristDashboardState extends State<TouristDashboard> {
   static const Color bg = Color(0xFFF8FAFC);
 
   String _name = '';
+
+  Future<void> _handleSos() async {
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const SosCountdownScreen(),
+      ),
+    );
+
+    if (!mounted) return;
+
+    if (result == true) {
+      _showMessage('SOS sent successfully.');
+    }
+  }
 
   @override
   void initState() {
@@ -141,10 +158,40 @@ class _TouristDashboardState extends State<TouristDashboard> {
                             QuickActions(
                               desktop: desktop,
                               onAction: (title) {
-                                _showMessage(
-                                  '$title will be connected next.',
-                                );
+                                if (title == 'SOS Emergency') {
+                                  _handleSos();
+                                } else {
+                                  _showMessage(
+                                    '$title will be connected next.',
+                                  );
+                                }
                               },
+                            ),
+
+                            const SizedBox(height: 14),
+
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) => const SosHistoryScreen(),
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(
+                                  Icons.history,
+                                  color: Colors.red,
+                                ),
+                                label: const Text(
+                                  'SOS History',
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
                             ),
 
                             const SizedBox(height: 14),
@@ -171,9 +218,13 @@ class _TouristDashboardState extends State<TouristDashboard> {
                                     flex: 3,
                                     child: EmergencyPanel(
                                       onAction: (title) {
-                                        _showMessage(
-                                          '$title will be connected next.',
-                                        );
+                                        if (title == 'SOS Emergency') {
+                                          _handleSos();
+                                        } else {
+                                          _showMessage(
+                                            '$title will be connected next.',
+                                          );
+                                        }
                                       },
                                     ),
                                   ),
@@ -194,9 +245,13 @@ class _TouristDashboardState extends State<TouristDashboard> {
 
                                   EmergencyPanel(
                                     onAction: (title) {
-                                      _showMessage(
-                                        '$title will be connected next.',
-                                      );
+                                      if (title == 'SOS Emergency') {
+                                        _handleSos();
+                                      } else {
+                                        _showMessage(
+                                          '$title will be connected next.',
+                                        );
+                                      }
                                     },
                                   ),
                                 ],
@@ -211,7 +266,17 @@ class _TouristDashboardState extends State<TouristDashboard> {
                 ),
               ],
             );
-          },
+          }, 
+        ),
+        
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _handleSos,
+        backgroundColor: Colors.red,
+        foregroundColor: Colors.white,
+        child: const Icon(
+          Icons.sos,
+          size: 32,
         ),
       ),
     );

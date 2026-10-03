@@ -13,12 +13,7 @@ class QuickActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final actions = [
-      _ActionData(
-        title: 'SOS Emergency',
-        subtitle: 'Send emergency alert',
-        icon: Icons.sos_rounded,
-        color: const Color(0xFFE11D48),
-      ),
+
       _ActionData(
         title: 'Safe Zone',
         subtitle: 'Check your safety area',
@@ -58,41 +53,14 @@ class QuickActions extends StatelessWidget {
 
     return Column(
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: _ActionCard(
-                data: actions[0],
-                onTap: () => onAction(actions[0].title),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _ActionCard(
-                data: actions[1],
-                onTap: () => onAction(actions[1].title),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _ActionCard(
-                data: actions[2],
-                onTap: () => onAction(actions[2].title),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _ActionCard(
-                data: actions[3],
-                onTap: () => onAction(actions[3].title),
-              ),
-            ),
-          ],
-        ),
+        for (int i = 0; i < actions.length; i++) ...[
+          _ActionCard(
+            data: actions[i],
+            onTap: () => onAction(actions[i].title),
+          ),
+          if (i != actions.length - 1)
+            const SizedBox(height: 12),
+        ],
       ],
     );
   }

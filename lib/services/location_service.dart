@@ -82,6 +82,24 @@ class LocationService {
       print('Firestore location error: $e');
     }
   }
+    Future<Position?> getCurrentLocation() async {
+    final allowed = await checkPermission();
+
+    if (!allowed) {
+      return null;
+    }
+
+    try {
+      return await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      );
+    } catch (e) {
+      print('Unable to get current location: $e');
+      return null;
+    }
+  }
 
   void stopTracking() {
     _positionStream?.cancel();

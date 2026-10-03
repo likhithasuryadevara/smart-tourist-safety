@@ -92,6 +92,31 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
       _showError('Enter a valid 10-digit Indian mobile number.');
       return;
     }
+    final emergencyName = _emergencyNameController.text.trim();
+    final emergencyPhone = _emergencyPhoneController.text.trim();
+    final emergencyRelationship =
+        _emergencyRelationshipController.text.trim();
+
+    final emergencyFieldsFilled =
+        emergencyName.isNotEmpty ||
+        emergencyPhone.isNotEmpty ||
+        emergencyRelationship.isNotEmpty;
+
+    if (emergencyFieldsFilled) {
+      if (emergencyName.isEmpty ||
+          emergencyPhone.isEmpty ||
+          emergencyRelationship.isEmpty) {
+        _showError('Please complete all emergency contact fields.');
+        return;
+      }
+
+      if (!RegExp(r'^[6-9][0-9]{9}$').hasMatch(emergencyPhone)) {
+        _showError(
+          'Enter a valid 10-digit emergency contact number.',
+        );
+        return;
+      }
+    }
 
     setState(() {
       _saving = true;
