@@ -30,9 +30,12 @@ class _LiveSafetyMapState extends State<LiveSafetyMap> {
     SafeZoneStatusService();
 
   Timer? _safeZoneRefreshTimer;
+  Timer? _dangerZoneRefreshTimer;
 
   LatLng? _currentLocation;
   SafeZone? _safeZone;
+  List<DangerZone> _dangerZones = [];
+  final Map<String, bool> _dangerZoneInsideStates = {};
 
   bool _isInsideSafeZone = true;
   double _distanceFromSafeZone = 0;
@@ -46,9 +49,14 @@ class _LiveSafetyMapState extends State<LiveSafetyMap> {
   void initState() {
     super.initState();
     _loadSafeZone();
+    _loadDangerZones();
     _safeZoneRefreshTimer = Timer.periodic(
       const Duration(seconds: 10),
       (_) => _loadSafeZone(),
+    );
+    _dangerZoneRefreshTimer = Timer.periodic(
+      const Duration(seconds: 10),
+      (_) => _loadDangerZones(),
     );
     _startLocationTracking();
   }
@@ -66,6 +74,31 @@ class _LiveSafetyMapState extends State<LiveSafetyMap> {
     _checkSafeZone();
   }
 
+  Future<void> _loadDangerZones() async {
+    final dangerZones = await _safeZoneService.getActiveDangerZones();
+
+    debugPrint('📍 Active Danger Zones loaded: ${dangerZones.length}.');
+    for (final dangerZone in dangerZones) {
+      debugPrint(
+        'Danger Zone loaded: id=${dangerZone.id}, '
+        'name=${dangerZone.name}, '
+        'radius=${dangerZone.radius}m, '
+        'coordinates=(${dangerZone.latitude}, ${dangerZone.longitude}).',
+      );
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _dangerZones = dangerZones;
+      _dangerZoneInsideStates.removeWhere(
+        (id, _) => !dangerZones.any((zone) => zone.id == id),
+      );
+    });
+
+    _checkDangerZones();
+  }
+
   void _startLocationTracking() {
     _locationService.startTracking(
       onLocationUpdate: (Position position) {
@@ -81,6 +114,7 @@ class _LiveSafetyMapState extends State<LiveSafetyMap> {
         });
 
         _checkSafeZone();
+        _checkDangerZones();
 
         _mapController.move(location, 15);
       },
@@ -139,9 +173,63 @@ class _LiveSafetyMapState extends State<LiveSafetyMap> {
     _statusService.updateStatus(inside);
   }
 
+  Future<void> _checkDangerZones() async {
+    final location = _currentLocation;
+    if (location == null) return;
+
+    debugPrint(
+      '📍 Current tourist location: '
+      'latitude=${location.latitude}, longitude=${location.longitude}.',
+    );
+
+    final enteredDangerZones = <DangerZone>[];
+    for (final dangerZone in _dangerZones) {
+      final insideDangerZone = _safeZoneService.isInsideDangerZone(
+        touristLatitude: location.latitude,
+        touristLongitude: location.longitude,
+        dangerZone: dangerZone,
+      );
+      final wasInsideDangerZone =
+          _dangerZoneInsideStates[dangerZone.id];
+      final distance = Geolocator.distanceBetween(
+        location.latitude,
+        location.longitude,
+        dangerZone.latitude,
+        dangerZone.longitude,
+      );
+
+      debugPrint(
+        'Danger Zone check: id=${dangerZone.id}, '
+        'distance=${distance.toStringAsFixed(1)}m, '
+        'radius=${dangerZone.radius}m, '
+        'state=${insideDangerZone ? 'INSIDE' : 'OUTSIDE'}, '
+        'previousState=$wasInsideDangerZone.',
+      );
+
+      _dangerZoneInsideStates[dangerZone.id] = insideDangerZone;
+
+      if (wasInsideDangerZone == false && insideDangerZone) {
+        debugPrint(
+          '🚨 OUTSIDE → INSIDE transition detected for '
+          'Danger Zone ${dangerZone.id} (${dangerZone.name}).',
+        );
+        enteredDangerZones.add(dangerZone);
+      }
+    }
+
+    for (final dangerZone in enteredDangerZones) {
+      debugPrint(
+        '📣 Calling createDangerZoneNotification() for '
+        'Danger Zone ${dangerZone.id} (${dangerZone.name}).',
+      );
+      await _safeZoneService.createDangerZoneNotification();
+    }
+  }
+
   @override
   void dispose() {
     _safeZoneRefreshTimer?.cancel();
+    _dangerZoneRefreshTimer?.cancel();
     _locationService.stopTracking();
     super.dispose();
   }

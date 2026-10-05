@@ -15,6 +15,22 @@ class SafeZone {
   });
 }
 
+class DangerZone {
+  final String id;
+  final String name;
+  final double latitude;
+  final double longitude;
+  final double radius;
+
+  DangerZone({
+    required this.id,
+    required this.name,
+    required this.latitude,
+    required this.longitude,
+    required this.radius,
+  });
+}
+
 class SafeZoneService {
   Future<SafeZone?> getActiveSafeZone() async {
     try {
@@ -56,6 +72,50 @@ class SafeZoneService {
       return null;
     }
   }
+
+  Future<List<DangerZone>> getActiveDangerZones() async {
+    try {
+      debugPrint('🔄 Loading active danger zones...');
+
+      final snapshot = await FirebaseFirestore.instance
+          .collection('danger_zones')
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      final dangerZones = snapshot.docs.map((doc) {
+        final data = doc.data();
+        return DangerZone(
+          id: doc.id,
+          name: data['name'] as String,
+          latitude: (data['latitude'] as num).toDouble(),
+          longitude: (data['longitude'] as num).toDouble(),
+          radius: (data['radius'] as num).toDouble(),
+        );
+      }).toList();
+
+      debugPrint('✅ Loaded ${dangerZones.length} active danger zone(s).');
+      return dangerZones;
+    } catch (e) {
+      debugPrint('❌ DANGER ZONE FIRESTORE ERROR: $e');
+      return [];
+    }
+  }
+
+  bool isInsideDangerZone({
+    required double touristLatitude,
+    required double touristLongitude,
+    required DangerZone dangerZone,
+  }) {
+    final distance = Geolocator.distanceBetween(
+      touristLatitude,
+      touristLongitude,
+      dangerZone.latitude,
+      dangerZone.longitude,
+    );
+
+    return distance <= dangerZone.radius;
+  }
+
   double calculateDistance({
     required double touristLatitude,
     required double touristLongitude,
@@ -82,6 +142,7 @@ class SafeZoneService {
 
     return distance <= safeZone.radius;
   }
+
   Future<void> createSafeZoneNotification() async {
     debugPrint('🔄 Safe Zone notification creation started.');
 
@@ -141,6 +202,43 @@ class SafeZoneService {
       debugPrint('✅ Zone Exit notification created.');
     } catch (e) {
       debugPrint('❌ Zone Exit notification creation failed: $e');
+    }
+  }
+
+  Future<void> createDangerZoneNotification() async {
+    debugPrint('🔄 Danger Zone notification creation started.');
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      debugPrint('Danger Zone notification Auth UID: ${user?.uid}.');
+
+      if (user == null) {
+        debugPrint(
+          '⚠️ Danger Zone notification creation skipped: '
+          'no authenticated user.',
+        );
+        return;
+      }
+
+      debugPrint('Writing Danger Zone notification to Firestore.');
+      final notification = await FirebaseFirestore.instance
+          .collection('notifications')
+          .add({
+        'touristId': user.uid,
+        'type': 'danger_zone',
+        'title': 'Danger Zone',
+        'message': 'You have entered a danger zone.',
+        'isRead': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      debugPrint(
+        '✅ Danger Zone notification created successfully: '
+        'documentId=${notification.id}.',
+      );
+    } catch (e, stackTrace) {
+      debugPrint('❌ Danger Zone notification creation failed: $e');
+      debugPrint('Danger Zone notification failure stack trace: $stackTrace');
     }
   }
 }
