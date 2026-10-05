@@ -26,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Voice SOS uses the microphone only while you are listening for an emergency phrase.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Voice SOS converts your spoken emergency phrase into text so you can confirm sending an SOS.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

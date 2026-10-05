@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 
 class EmergencyPanel extends StatelessWidget {
   final Function(String) onAction;
+  final bool voiceListening;
+  final String voiceStatus;
 
   const EmergencyPanel({
     super.key,
     required this.onAction,
+    required this.voiceListening,
+    required this.voiceStatus,
   });
 
   @override
@@ -59,6 +63,39 @@ class EmergencyPanel extends StatelessWidget {
             title: 'SEND SOS',
             color: const Color(0xFFE11D48),
             onTap: () => onAction('SOS Emergency'),
+          ),
+
+          const SizedBox(height: 10),
+
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF17233A),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  voiceListening ? Icons.mic : Icons.mic_off,
+                  color: voiceListening
+                      ? const Color(0xFF14B8A6)
+                      : const Color(0xFF94A3B8),
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    voiceStatus,
+                    style: const TextStyle(
+                      color: Color(0xFFCBD5E1),
+                      fontSize: 10,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
 
           const SizedBox(height: 10),
@@ -142,7 +179,7 @@ class _EmergencyButton extends StatelessWidget {
           color: const Color(0xFF17233A),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: color.withOpacity(0.5),
+            color: color.withValues(alpha: 0.5),
           ),
         ),
         child: Row(
