@@ -77,16 +77,6 @@ class _LiveSafetyMapState extends State<LiveSafetyMap> {
   Future<void> _loadDangerZones() async {
     final dangerZones = await _safeZoneService.getActiveDangerZones();
 
-    debugPrint('📍 Active Danger Zones loaded: ${dangerZones.length}.');
-    for (final dangerZone in dangerZones) {
-      debugPrint(
-        'Danger Zone loaded: id=${dangerZone.id}, '
-        'name=${dangerZone.name}, '
-        'radius=${dangerZone.radius}m, '
-        'coordinates=(${dangerZone.latitude}, ${dangerZone.longitude}).',
-      );
-    }
-
     if (!mounted) return;
 
     setState(() {
@@ -177,11 +167,6 @@ class _LiveSafetyMapState extends State<LiveSafetyMap> {
     final location = _currentLocation;
     if (location == null) return;
 
-    debugPrint(
-      '📍 Current tourist location: '
-      'latitude=${location.latitude}, longitude=${location.longitude}.',
-    );
-
     final enteredDangerZones = <DangerZone>[];
     for (final dangerZone in _dangerZones) {
       final insideDangerZone = _safeZoneService.isInsideDangerZone(
@@ -191,37 +176,23 @@ class _LiveSafetyMapState extends State<LiveSafetyMap> {
       );
       final wasInsideDangerZone =
           _dangerZoneInsideStates[dangerZone.id];
-      final distance = Geolocator.distanceBetween(
-        location.latitude,
-        location.longitude,
-        dangerZone.latitude,
-        dangerZone.longitude,
-      );
 
       debugPrint(
-        'Danger Zone check: id=${dangerZone.id}, '
-        'distance=${distance.toStringAsFixed(1)}m, '
-        'radius=${dangerZone.radius}m, '
-        'state=${insideDangerZone ? 'INSIDE' : 'OUTSIDE'}, '
-        'previousState=$wasInsideDangerZone.',
+        '📍 Danger Zone ${dangerZone.name}: '
+        '${insideDangerZone ? 'INSIDE' : 'OUTSIDE'}.',
       );
 
       _dangerZoneInsideStates[dangerZone.id] = insideDangerZone;
 
       if (wasInsideDangerZone == false && insideDangerZone) {
         debugPrint(
-          '🚨 OUTSIDE → INSIDE transition detected for '
-          'Danger Zone ${dangerZone.id} (${dangerZone.name}).',
+          '🚨 Outside → inside Danger Zone detected: ${dangerZone.name}.',
         );
         enteredDangerZones.add(dangerZone);
       }
     }
 
-    for (final dangerZone in enteredDangerZones) {
-      debugPrint(
-        '📣 Calling createDangerZoneNotification() for '
-        'Danger Zone ${dangerZone.id} (${dangerZone.name}).',
-      );
+    for (final _ in enteredDangerZones) {
       await _safeZoneService.createDangerZoneNotification();
     }
   }

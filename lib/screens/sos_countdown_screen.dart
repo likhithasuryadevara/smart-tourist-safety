@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../services/location_service.dart';
+import '../services/notification_service.dart';
 import 'sos_active_screen.dart';
 import 'sos_failure_screen.dart';
 
@@ -25,6 +26,7 @@ class _SosCountdownScreenState extends State<SosCountdownScreen> {
   Timer? _timer;
 
   final LocationService _locationService = LocationService();
+  final NotificationService _notificationService = NotificationService();
   Position? _currentPosition;
 
   @override
@@ -194,7 +196,8 @@ class _SosCountdownScreenState extends State<SosCountdownScreen> {
         return;
       }
 
-      await FirebaseFirestore.instance.collection('sos').add({
+      final sosDocument =
+          await FirebaseFirestore.instance.collection('sos').add({
         'touristId': user.uid,
         'touristName': userData['name'] ?? 'Unknown',
         'email': user.email ?? '',
@@ -204,6 +207,19 @@ class _SosCountdownScreenState extends State<SosCountdownScreen> {
         'status': 'active',
         'createdAt': FieldValue.serverTimestamp(),
       });
+
+      debugPrint(
+        'SOS document created: id=${sosDocument.id}, '
+        'touristId=${user.uid}.',
+      );
+      debugPrint(
+        'Creating SOS Confirmation notification for '
+        'sosId=${sosDocument.id}, touristId=${user.uid}.',
+      );
+      await _notificationService.createSosConfirmationNotification(
+        sosId: sosDocument.id,
+        touristId: user.uid,
+      );
 
       debugPrint('SOS created successfully');
 

@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../services/notification_service.dart';
 import '../widgets/danger_banner.dart';
 import '../widgets/emergency_panel.dart';
 import '../widgets/live_safety_map.dart';
@@ -24,6 +27,10 @@ class TouristDashboard extends StatefulWidget {
 class _TouristDashboardState extends State<TouristDashboard> {
   static const Color bg = Color(0xFFF8FAFC);
 
+  final NotificationService _notificationService = NotificationService();
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+      _sosStatusSubscription;
+
   String _name = '';
 
   Future<void> _handleSos() async {
@@ -44,6 +51,18 @@ class _TouristDashboardState extends State<TouristDashboard> {
   void initState() {
     super.initState();
     _loadTouristName();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _sosStatusSubscription = _notificationService.listenForSosStatusChanges(
+        user.uid,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _sosStatusSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadTouristName() async {
@@ -294,9 +313,8 @@ class _TouristDashboardState extends State<TouristDashboard> {
                 ),
               ],
             );
-          }, 
+          },
         ),
-        
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _handleSos,
