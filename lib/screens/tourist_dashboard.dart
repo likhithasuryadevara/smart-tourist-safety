@@ -15,6 +15,7 @@ import '../widgets/welcome_card.dart';
 import 'sos_countdown_screen.dart';
 import 'sos_history_screen.dart';
 import 'notifications_screen.dart';
+import 'tourist_safety_history_screen.dart';
 
 
 class TouristDashboard extends StatefulWidget {
@@ -167,7 +168,6 @@ class _TouristDashboardState extends State<TouristDashboard> {
                             WelcomeCard(
                               name: name,
                             ),
-                            
                             const SizedBox(height: 14),
                             StatsSection(
                               desktop: desktop,
@@ -221,16 +221,38 @@ class _TouristDashboardState extends State<TouristDashboard> {
                                 onPressed: () {
                                   Navigator.of(context).push(
                                     MaterialPageRoute(
-                                      builder: (context) => const SosHistoryScreen(),
+                                      builder: (context) =>
+                                          const TouristSafetyHistoryScreen(),
                                     ),
                                   );
                                 },
                                 icon: const Icon(
                                   Icons.history,
-                                  color: Colors.red,
+                                  color: Colors.teal,
                                 ),
-                                
-                                
+                                label: const Text(
+                                  'Safety History',
+                                  style: TextStyle(
+                                    color: Colors.teal,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 12),
+
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) => const SosHistoryScreen(),
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.sos, color: Colors.red),
                                 label: const Text(
                                   'SOS History',
                                   style: TextStyle(
