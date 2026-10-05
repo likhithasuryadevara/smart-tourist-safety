@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+
+
 class SosFailureScreen extends StatelessWidget {
   final String message;
 

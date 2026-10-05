@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class SafeZone {
   final double latitude;
@@ -16,7 +18,7 @@ class SafeZone {
 class SafeZoneService {
   Future<SafeZone?> getActiveSafeZone() async {
     try {
-      print('🔄 Loading active safe zone...');
+      debugPrint('🔄 Loading active safe zone...');
 
       final snapshot = await FirebaseFirestore.instance
           .collection('safe_zones')
@@ -24,24 +26,33 @@ class SafeZoneService {
           .limit(1)
           .get();
 
-      print('📄 Documents found: ${snapshot.docs.length}');
+      debugPrint('📄 Documents found: ${snapshot.docs.length}');
 
       if (snapshot.docs.isEmpty) {
-        print('❌ No active safe zone found.');
+        debugPrint('❌ No active safe zone found.');
         return null;
       }
 
       final data = snapshot.docs.first.data();
 
-      print('✅ Safe zone data: $data');
+      debugPrint('✅ Safe zone data: $data');
 
-      return SafeZone(
+      final safeZone = SafeZone(
         latitude: (data['latitude'] as num).toDouble(),
         longitude: (data['longitude'] as num).toDouble(),
         radius: (data['radius'] as num).toDouble(),
       );
+
+      debugPrint(
+        '✅ Active Safe Zone loaded: '
+        'latitude=${safeZone.latitude}, '
+        'longitude=${safeZone.longitude}, '
+        'radius=${safeZone.radius}m',
+      );
+
+      return safeZone;
     } catch (e) {
-      print('❌ SAFE ZONE FIRESTORE ERROR: $e');
+      debugPrint('❌ SAFE ZONE FIRESTORE ERROR: $e');
       return null;
     }
   }
@@ -70,5 +81,66 @@ class SafeZoneService {
     );
 
     return distance <= safeZone.radius;
+  }
+  Future<void> createSafeZoneNotification() async {
+    debugPrint('🔄 Safe Zone notification creation started.');
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+
+      if (user == null) {
+        debugPrint(
+          '⚠️ Safe Zone notification creation skipped: '
+          'no authenticated user.',
+        );
+        return;
+      }
+
+      await FirebaseFirestore.instance
+          .collection('notifications')
+          .add({
+        'touristId': user.uid,
+        'type': 'safe_zone',
+        'title': 'Safe Zone',
+        'message': 'You have entered a safe zone.',
+        'isRead': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      debugPrint('✅ Safe zone notification created.');
+    } catch (e) {
+      debugPrint('❌ Safe Zone notification creation failed: $e');
+    }
+  }
+
+  Future<void> createZoneExitNotification() async {
+    debugPrint('🔄 Zone Exit notification creation started.');
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+
+      if (user == null) {
+        debugPrint(
+          '⚠️ Zone Exit notification creation skipped: '
+          'no authenticated user.',
+        );
+        return;
+      }
+
+      await FirebaseFirestore.instance
+          .collection('notifications')
+          .add({
+        'touristId': user.uid,
+        'type': 'zone_exit',
+        'title': 'Zone Exit',
+        'message': 'You have left the safe zone.',
+        'isRead': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      debugPrint('✅ Zone Exit notification created.');
+    } catch (e) {
+      debugPrint('❌ Zone Exit notification creation failed: $e');
+    }
   }
 }

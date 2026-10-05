@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
@@ -27,11 +29,15 @@ class _LiveSafetyMapState extends State<LiveSafetyMap> {
   final SafeZoneStatusService _statusService =
     SafeZoneStatusService();
 
+  Timer? _safeZoneRefreshTimer;
+
   LatLng? _currentLocation;
   SafeZone? _safeZone;
 
   bool _isInsideSafeZone = true;
   double _distanceFromSafeZone = 0;
+  bool _hasCheckedSafeZone = false;
+  bool _wasInsideSafeZone = false;
 
   final LatLng _fallbackLocation =
       const LatLng(16.4854, 80.6916);
@@ -40,6 +46,10 @@ class _LiveSafetyMapState extends State<LiveSafetyMap> {
   void initState() {
     super.initState();
     _loadSafeZone();
+    _safeZoneRefreshTimer = Timer.periodic(
+      const Duration(seconds: 10),
+      (_) => _loadSafeZone(),
+    );
     _startLocationTracking();
   }
 
@@ -77,7 +87,7 @@ class _LiveSafetyMapState extends State<LiveSafetyMap> {
     );
   }
 
-  void _checkSafeZone() {
+  Future<void> _checkSafeZone() async {
     if (_currentLocation == null || _safeZone == null) {
       return;
     }
@@ -94,17 +104,44 @@ class _LiveSafetyMapState extends State<LiveSafetyMap> {
       safeZone: _safeZone!,
     );
 
+    debugPrint('📏 Distance from Safe Zone: ${distance.toStringAsFixed(1)}m.');
+    debugPrint(
+      '📍 Tourist Safe Zone state: '
+      '${inside ? 'INSIDE' : 'OUTSIDE'}.',
+    );
+
     if (!mounted) return;
 
     setState(() {
       _distanceFromSafeZone = distance;
       _isInsideSafeZone = inside;
     });
+
+    // Detect outside → inside transition.
+    final enteredSafeZone =
+        _hasCheckedSafeZone && !_wasInsideSafeZone && inside;
+    final exitedSafeZone =
+        _hasCheckedSafeZone && _wasInsideSafeZone && !inside;
+
+    // Record this state before awaiting Firestore so overlapping GPS updates
+    // cannot treat the same transition as a second transition.
+    _wasInsideSafeZone = inside;
+    _hasCheckedSafeZone = true;
+
+    if (enteredSafeZone) {
+      debugPrint('🚶 Outside → inside Safe Zone transition detected.');
+      await _safeZoneService.createSafeZoneNotification();
+    } else if (exitedSafeZone) {
+      debugPrint('🚶 Inside → outside Safe Zone transition detected.');
+      await _safeZoneService.createZoneExitNotification();
+    }
+
     _statusService.updateStatus(inside);
   }
 
   @override
   void dispose() {
+    _safeZoneRefreshTimer?.cancel();
     _locationService.stopTracking();
     super.dispose();
   }
