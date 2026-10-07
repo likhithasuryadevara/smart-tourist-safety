@@ -15,30 +15,25 @@ class DangerBanner extends StatelessWidget {
       borderRadius: BorderRadius.circular(10),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 13,
-        ),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFF1F2),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: const Color(0xFFFDA4AF),
-          ),
+          color: const Color(0xFFFFF7F5),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFF3D6D1)),
         ),
         child: Row(
           children: [
             Container(
-              width: 38,
-              height: 38,
-              decoration: const BoxDecoration(
-                color: Color(0xFFE11D48),
-                shape: BoxShape.circle,
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFCE8E5),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(
                 Icons.warning_amber_rounded,
-                color: Colors.white,
-                size: 22,
+                color: Color(0xFFB5473C),
+                size: 23,
               ),
             ),
 
@@ -51,17 +46,17 @@ class DangerBanner extends StatelessWidget {
                   Text(
                     'Safety Alert',
                     style: TextStyle(
-                      color: Color(0xFF9F1239),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF8F352D),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   SizedBox(height: 3),
                   Text(
                     'Stay aware of your surroundings and remain within designated safe zones.',
                     style: TextStyle(
-                      color: Color(0xFFBE123C),
-                      fontSize: 11,
+                      color: Color(0xFF765E5A),
+                      fontSize: 12,
                     ),
                   ),
                 ],
@@ -72,7 +67,7 @@ class DangerBanner extends StatelessWidget {
 
             const Icon(
               Icons.arrow_forward_ios_rounded,
-              color: Color(0xFFE11D48),
+              color: Color(0xFFB5473C),
               size: 16,
             ),
           ],

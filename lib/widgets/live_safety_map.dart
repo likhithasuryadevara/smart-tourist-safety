@@ -10,6 +10,7 @@ import '../services/safe_zone_status_service.dart';
 import '../services/location_service.dart';
 import '../services/safe_zone_service.dart';
 import '../services/tourist_settings_service.dart';
+import '../utils/app_error_message.dart';
 
 class LiveSafetyMap extends StatefulWidget {
   final VoidCallback onFullscreen;
@@ -50,6 +51,15 @@ class _LiveSafetyMapState extends State<LiveSafetyMap>
   double _distanceFromSafeZone = 0;
   bool _hasCheckedSafeZone = false;
   bool _wasInsideSafeZone = false;
+  bool _safeZoneLoading = true;
+  bool _dangerZonesLoading = true;
+  Object? _safeZoneError;
+  Object? _dangerZonesError;
+  bool _hasLoadedSafeZone = false;
+  bool _hasLoadedDangerZones = false;
+  bool _loadingSafeZoneRequest = false;
+  bool _loadingDangerZoneRequest = false;
+  bool _retryingZones = false;
 
   final LatLng _fallbackLocation = const LatLng(16.4854, 80.6916);
 
@@ -199,6 +209,16 @@ class _LiveSafetyMapState extends State<LiveSafetyMap>
       await _locationService.stopTracking();
       return;
     }
+    if (availability == LocationAvailability.permissionDeniedForever) {
+      _gpsRetryTimer?.cancel();
+      _locationFixTimer?.cancel();
+      _statusService.updateGpsStatus(
+        TouristGpsStatus.permissionDeniedForever,
+      );
+      _statusService.updateStatus(false);
+      await _locationService.stopTracking();
+      return;
+    }
     if (availability == LocationAvailability.active &&
         _trackingEnabled &&
         !_locationService.isTracking) {
@@ -208,32 +228,78 @@ class _LiveSafetyMapState extends State<LiveSafetyMap>
   }
 
   Future<void> _loadSafeZone() async {
-    final safeZone = await _safeZoneService.getActiveSafeZone();
-
-    if (!mounted) return;
-
-    setState(() {
-      _safeZone = safeZone;
-    });
-
-    _checkSafeZone();
-    _publishSafetyStatus();
+    if (_loadingSafeZoneRequest) return;
+    _loadingSafeZoneRequest = true;
+    if (!_hasLoadedSafeZone && mounted) {
+      setState(() => _safeZoneLoading = true);
+    }
+    try {
+      final safeZone = await _safeZoneService.getActiveSafeZone();
+      if (!mounted) return;
+      setState(() {
+        _safeZone = safeZone;
+        _safeZoneError = null;
+        _safeZoneLoading = false;
+        _hasLoadedSafeZone = true;
+      });
+      _checkSafeZone();
+      _publishSafetyStatus();
+    } catch (error, stackTrace) {
+      AppErrorMessage.log(error, stackTrace, context: 'Loading safe zone');
+      if (!mounted) return;
+      setState(() {
+        _safeZoneError = error;
+        _safeZoneLoading = false;
+        _hasLoadedSafeZone = true;
+      });
+      _publishSafetyStatus();
+    } finally {
+      _loadingSafeZoneRequest = false;
+    }
   }
 
   Future<void> _loadDangerZones() async {
-    final dangerZones = await _safeZoneService.getActiveDangerZones();
+    if (_loadingDangerZoneRequest) return;
+    _loadingDangerZoneRequest = true;
+    if (!_hasLoadedDangerZones && mounted) {
+      setState(() => _dangerZonesLoading = true);
+    }
+    try {
+      final dangerZones = await _safeZoneService.getActiveDangerZones();
+      if (!mounted) return;
+      setState(() {
+        _dangerZones = dangerZones;
+        _dangerZonesError = null;
+        _dangerZonesLoading = false;
+        _hasLoadedDangerZones = true;
+        _dangerZoneInsideStates.removeWhere(
+          (id, _) => !dangerZones.any((zone) => zone.id == id),
+        );
+      });
+      _checkDangerZones();
+      _publishSafetyStatus();
+    } catch (error, stackTrace) {
+      AppErrorMessage.log(error, stackTrace, context: 'Loading danger zones');
+      if (!mounted) return;
+      setState(() {
+        _dangerZonesError = error;
+        _dangerZonesLoading = false;
+        _hasLoadedDangerZones = true;
+      });
+      _publishSafetyStatus();
+    } finally {
+      _loadingDangerZoneRequest = false;
+    }
+  }
 
-    if (!mounted) return;
-
-    setState(() {
-      _dangerZones = dangerZones;
-      _dangerZoneInsideStates.removeWhere(
-        (id, _) => !dangerZones.any((zone) => zone.id == id),
-      );
-    });
-
-    _checkDangerZones();
-    _publishSafetyStatus();
+  Future<void> _retryZoneInformation() async {
+    if (_retryingZones) return;
+    setState(() => _retryingZones = true);
+    try {
+      await Future.wait([_loadSafeZone(), _loadDangerZones()]);
+    } finally {
+      if (mounted) setState(() => _retryingZones = false);
+    }
   }
 
   Future<void> _startLocationTracking() async {
@@ -308,6 +374,13 @@ class _LiveSafetyMapState extends State<LiveSafetyMap>
         _gpsRetryTimer?.cancel();
         _locationFixTimer?.cancel();
         _statusService.updateGpsStatus(TouristGpsStatus.permissionDenied);
+        _statusService.updateStatus(false);
+      case LocationAvailability.permissionDeniedForever:
+        _gpsRetryTimer?.cancel();
+        _locationFixTimer?.cancel();
+        _statusService.updateGpsStatus(
+          TouristGpsStatus.permissionDeniedForever,
+        );
         _statusService.updateStatus(false);
       case LocationAvailability.unavailable:
         _scheduleGpsRetry();
@@ -454,43 +527,60 @@ class _LiveSafetyMapState extends State<LiveSafetyMap>
     return Container(
       height: 390,
       decoration: BoxDecoration(
-        color: const Color(0xFF111C31),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF334155)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE4EBEA)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x080F766E),
+            blurRadius: 12,
+            offset: Offset(0, 3),
+          ),
+        ],
       ),
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+            padding: const EdgeInsets.fromLTRB(15, 13, 10, 11),
             child: Row(
               children: [
-                const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Live Tourist Safety Map',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w900,
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Live Tourist Safety Map',
+                        style: TextStyle(
+                          color: Color(0xFF172B35),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      'Real-world map • Safe zones',
-                      style: TextStyle(color: Color(0xFF94A3B8), fontSize: 8),
-                    ),
-                  ],
+                      SizedBox(height: 3),
+                      Text(
+                        'Real-time safety and location',
+                        style: TextStyle(
+                          color: Color(0xFF73818A),
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const Spacer(),
-                TextButton(
+                TextButton.icon(
                   onPressed: widget.onFullscreen,
-                  child: const Text(
-                    'Full Screen Map →',
-                    style: TextStyle(
-                      color: Color(0xFF2DD4BF),
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
+                  icon: const Icon(Icons.open_in_full_rounded, size: 16),
+                  label: const Text(
+                    'Full screen',
+                    maxLines: 1,
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF0F766E),
+                    minimumSize: const Size(44, 44),
+                    padding: const EdgeInsets.symmetric(horizontal: 9),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(11),
                     ),
                   ),
                 ),
@@ -499,96 +589,163 @@ class _LiveSafetyMapState extends State<LiveSafetyMap>
           ),
 
           Expanded(
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                bottom: Radius.circular(10),
-              ),
-              child: FlutterMap(
-                mapController: _mapController,
-                options: MapOptions(
-                  initialCenter: center,
-                  initialZoom: 15,
-                  minZoom: 3,
-                  maxZoom: 19,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(13),
+                  border: Border.all(color: const Color(0xFFE4EBEA)),
                 ),
-                children: [
-                  TileLayer(
-                    urlTemplate:
-                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    userAgentPackageName: 'com.example.smart_tourist_safety',
-                  ),
-
-                  if (_safeZone != null)
-                    CircleLayer(
-                      circles: [
-                        CircleMarker(
-                          point: LatLng(
-                            _safeZone!.latitude,
-                            _safeZone!.longitude,
-                          ),
-                          radius: _safeZone!.radius,
-                          useRadiusInMeter: true,
-                          color: _isInsideSafeZone
-                              ? const Color(0x3322C55E)
-                              : const Color(0x33EF4444),
-                          borderColor: _isInsideSafeZone
-                              ? const Color(0xFF22C55E)
-                              : const Color(0xFFEF4444),
-                          borderStrokeWidth: 2,
-                        ),
-                      ],
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: FlutterMap(
+                    mapController: _mapController,
+                    options: MapOptions(
+                      initialCenter: center,
+                      initialZoom: 15,
+                      minZoom: 3,
+                      maxZoom: 19,
                     ),
+                    children: [
+                      TileLayer(
+                        urlTemplate:
+                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        userAgentPackageName: 'com.example.smart_tourist_safety',
+                      ),
 
-                  MarkerLayer(
-                    markers: [
-                      Marker(
-                        point: center,
-                        width: 60,
-                        height: 60,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: const Color(0x332563EB),
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: const Color(0xFF2563EB),
-                              width: 2,
+                      if (_safeZone != null)
+                        CircleLayer(
+                          circles: [
+                            CircleMarker(
+                              point: LatLng(
+                                _safeZone!.latitude,
+                                _safeZone!.longitude,
+                              ),
+                              radius: _safeZone!.radius,
+                              useRadiusInMeter: true,
+                              color: _isInsideSafeZone
+                                  ? const Color(0x3322C55E)
+                                  : const Color(0x33EF4444),
+                              borderColor: _isInsideSafeZone
+                                  ? const Color(0xFF22C55E)
+                                  : const Color(0xFFEF4444),
+                              borderStrokeWidth: 2,
                             ),
-                          ),
-                          child: const Center(
-                            child: Icon(
-                              Icons.person,
-                              color: Colors.white,
-                              size: 24,
-                            ),
-                          ),
+                          ],
                         ),
+
+                      MarkerLayer(
+                        markers: [
+                          Marker(
+                            point: center,
+                            width: 60,
+                            height: 60,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: const Color(0x442563EB),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: const Color(0xFF2563EB),
+                                  width: 2,
+                                ),
+                              ),
+                              child: const Center(
+                                child: Icon(
+                                  Icons.person,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
 
           Padding(
-            padding: const EdgeInsets.all(8),
-            child: Text(
-              _safeZone == null
-                  ? 'Loading Safe Zone...'
-                  : _isInsideSafeZone
-                  ? '🟢 Inside Safe Zone'
-                  : '🔴 Outside Safe Zone • ${_distanceFromSafeZone.toStringAsFixed(0)}m from center',
-              style: TextStyle(
-                color: _isInsideSafeZone
-                    ? const Color(0xFF22C55E)
-                    : const Color(0xFFEF4444),
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-              ),
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _safeZoneStatusText,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: _safeZoneError != null
+                        ? const Color(0xFFB5473C)
+                        : _isInsideSafeZone
+                        ? const Color(0xFF16805D)
+                        : const Color(0xFFB5473C),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  _dangerZoneStatusText,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: _dangerZonesError != null
+                        ? const Color(0xFFB5473C)
+                        : const Color(0xFF73818A),
+                    fontSize: 10,
+                  ),
+                ),
+                if (_safeZoneError != null || _dangerZonesError != null)
+                  TextButton.icon(
+                    onPressed: _retryingZones ? null : _retryZoneInformation,
+                    icon: _retryingZones
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.refresh, size: 15),
+                    label: Text(
+                      _retryingZones
+                          ? 'Retrying zone information...'
+                          : 'Retry zone information',
+                    ),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF2DD4BF),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+              ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  String get _safeZoneStatusText {
+    if (_safeZoneError != null) {
+      return AppErrorMessage.from(
+        _safeZoneError!,
+        fallback: 'Unable to load safe zone information.',
+      );
+    }
+    if (_safeZoneLoading) return 'Loading safe zone information...';
+    if (_safeZone == null) return 'No active safe zone information available.';
+    return _isInsideSafeZone
+        ? 'Inside Safe Zone'
+        : 'Outside Safe Zone • ${_distanceFromSafeZone.toStringAsFixed(0)} m from center';
+  }
+
+  String get _dangerZoneStatusText {
+    if (_dangerZonesError != null) {
+      return AppErrorMessage.from(
+        _dangerZonesError!,
+        fallback: 'Unable to load danger zone information.',
+      );
+    }
+    if (_dangerZonesLoading) return 'Loading danger zone information...';
+    if (_dangerZones.isEmpty) return 'No active danger zones.';
+    return '${_dangerZones.length} active danger zone(s) monitored';
   }
 }

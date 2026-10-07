@@ -29,8 +29,8 @@ class SosDetailsScreen extends StatelessWidget {
     final phone =
         sosData['phone']?.toString() ?? 'N/A';
 
-    final timestamp =
-        sosData['createdAt'] as Timestamp?;
+    final createdAt = sosData['createdAt'];
+    final timestamp = createdAt is Timestamp ? createdAt : null;
 
     final dateText = timestamp != null
         ? _formatDate(timestamp.toDate())

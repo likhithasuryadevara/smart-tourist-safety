@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../admin_dashboard.dart';
+import '../utils/app_error_message.dart';
 import 'register_screen.dart';
 import 'tourist_dashboard.dart';
 
@@ -27,51 +28,54 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter your email address first.'),
-        ),
+        const SnackBar(content: Text('Please enter your email address first.')),
       );
       return;
     }
 
     try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(
-        email: email,
-      );
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
+          content: Text('Password reset email sent. Please check your inbox.'),
+        ),
+      );
+    } on FirebaseAuthException catch (e, stackTrace) {
+      AppErrorMessage.log(
+        e,
+        stackTrace,
+        context: 'Sending password reset email',
+      );
+      if (!mounted) return;
+
+      final message = e.code == 'user-not-found'
+          ? 'No account found with this email.'
+          : AppErrorMessage.from(
+              e,
+              fallback: 'Unable to send password reset email.',
+            );
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
+    } catch (error, stackTrace) {
+      AppErrorMessage.log(
+        error,
+        stackTrace,
+        context: 'Sending password reset email',
+      );
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
           content: Text(
-            'Password reset email sent. Please check your inbox.',
+            AppErrorMessage.from(
+              error,
+              fallback: 'Unable to send password reset email.',
+            ),
           ),
-        ),
-      );
-    } on FirebaseAuthException catch (e) {
-      if (!mounted) return;
-
-      String message = 'Unable to send password reset email.';
-
-      if (e.code == 'user-not-found') {
-        message = 'No account found with this email.';
-      } else if (e.code == 'invalid-email') {
-        message = 'Please enter a valid email address.';
-      } else if (e.code == 'too-many-requests') {
-        message = 'Too many requests. Please try again later.';
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Something went wrong: $e'),
         ),
       );
     }
@@ -87,17 +91,11 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      print('LOGIN BUTTON PRESSED');
-      print('LOGIN EMAIL: ${_emailController.text.trim()}');
-
       // 1. Firebase Authentication
-      final credential =
-          await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-
-      print('FIREBASE SIGN-IN SUCCESS');
 
       final user = credential.user;
 
@@ -105,17 +103,11 @@ class _LoginScreenState extends State<LoginScreen> {
         throw Exception('Firebase user is null.');
       }
 
-      print('LOGIN USER UID: ${user.uid}');
-      print('LOGIN USER EMAIL: ${user.email}');
-      print('LOGIN EMAIL VERIFIED: ${user.emailVerified}');
-
       // 2. Get Firestore profile
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .get();
-
-      print('FIRESTORE DOCUMENT EXISTS: ${userDoc.exists}');
 
       if (!userDoc.exists) {
         await FirebaseAuth.instance.signOut();
@@ -123,11 +115,7 @@ class _LoginScreenState extends State<LoginScreen> {
         if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'User profile not found in Firestore.',
-            ),
-          ),
+          const SnackBar(content: Text('User profile not found in Firestore.')),
         );
 
         return;
@@ -135,19 +123,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final data = userDoc.data();
 
-      print('FIRESTORE DATA: $data');
-
       if (data == null) {
         await FirebaseAuth.instance.signOut();
 
         if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'User profile data is empty.',
-            ),
-          ),
+          const SnackBar(content: Text('User profile data is empty.')),
         );
 
         return;
@@ -156,17 +138,9 @@ class _LoginScreenState extends State<LoginScreen> {
       // 3. Read role/status
       final role = data['role'] ?? 'tourist';
 
-      final approvalStatus =
-          data['approvalStatus'] ?? 'pending';
+      final approvalStatus = data['approvalStatus'] ?? 'pending';
 
-      final accountStatus =
-          data['accountStatus'] ??
-          data['status'] ??
-          'active';
-
-      print('LOGIN ROLE: $role');
-      print('LOGIN APPROVAL STATUS: $approvalStatus');
-      print('LOGIN ACCOUNT STATUS: $accountStatus');
+      final accountStatus = data['accountStatus'] ?? 'active';
 
       // 4. Suspended account
       if (accountStatus == 'suspended') {
@@ -190,15 +164,10 @@ class _LoginScreenState extends State<LoginScreen> {
       // =====================================================
 
       if (role == 'admin') {
-        print('ADMIN LOGIN SUCCESS');
-        print('OPENING ADMIN DASHBOARD');
-
         if (!mounted) return;
 
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => const AdminDashboard(),
-          ),
+          MaterialPageRoute(builder: (context) => const AdminDashboard()),
         );
 
         return;
@@ -209,7 +178,6 @@ class _LoginScreenState extends State<LoginScreen> {
       // =====================================================
 
       if (role == 'tourist') {
-
         // Tourist email must be verified
         if (!user.emailVerified) {
           await FirebaseAuth.instance.signOut();
@@ -233,32 +201,22 @@ class _LoginScreenState extends State<LoginScreen> {
 
           if (!mounted) return;
 
-          String message =
-              'Your account is waiting for admin approval.';
+          String message = 'Your account is waiting for admin approval.';
 
           if (approvalStatus == 'rejected') {
-            message =
-                'Your account registration was rejected.';
+            message = 'Your account registration was rejected.';
           }
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(message),
-            ),
-          );
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(message)));
 
           return;
         }
 
-        print('TOURIST LOGIN SUCCESS');
-        print('OPENING TOURIST DASHBOARD');
-
         if (!mounted) return;
 
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => const TouristDashboard(),
-          ),
+          MaterialPageRoute(builder: (context) => const TouristDashboard()),
         );
 
         return;
@@ -279,49 +237,29 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       );
-    } on FirebaseAuthException catch (e) {
-
-      print('FIREBASE AUTH ERROR: ${e.code}');
-      print('FIREBASE AUTH MESSAGE: ${e.message}');
-
-      String message = 'Login failed.';
-
-      if (e.code == 'invalid-credential') {
-        message = 'Incorrect email or password.';
-      } else if (e.code == 'user-not-found') {
-        message = 'No account found with this email.';
-      } else if (e.code == 'wrong-password') {
-        message = 'Incorrect password.';
-      } else if (e.code == 'invalid-email') {
-        message = 'Please enter a valid email.';
-      } else if (e.code == 'user-disabled') {
-        message = 'This account has been disabled.';
-      } else if (e.code == 'too-many-requests') {
-        message = 'Too many login attempts. Try again later.';
-      }
+    } on FirebaseAuthException catch (e, stackTrace) {
+      AppErrorMessage.log(e, stackTrace, context: 'Signing in');
+      final message = AppErrorMessage.from(e, fallback: 'Login failed.');
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-        ),
-      );
-    } catch (e) {
-
-      print('LOGIN ERROR: $e');
-
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
+    } catch (error, stackTrace) {
+      AppErrorMessage.log(error, stackTrace, context: 'Signing in');
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Something went wrong: $e',
+            AppErrorMessage.from(
+              error,
+              fallback: 'Login failed. Please try again.',
+            ),
           ),
         ),
       );
     } finally {
-
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -333,9 +271,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Login'),
-      ),
+      appBar: AppBar(title: const Text('Login')),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -345,19 +281,13 @@ class _LoginScreenState extends State<LoginScreen> {
               key: _formKey,
               child: Column(
                 children: [
-                  const Icon(
-                    Icons.shield,
-                    size: 70,
-                  ),
+                  const Icon(Icons.shield, size: 70),
 
                   const SizedBox(height: 20),
 
                   const Text(
                     'Smart Tourist Safety',
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
                   ),
 
                   const SizedBox(height: 10),
@@ -427,9 +357,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     alignment: Alignment.centerRight,
                     child: TextButton(
                       onPressed: _forgotPassword,
-                      child: const Text(
-                        'Forgot Password?',
-                      ),
+                      child: const Text('Forgot Password?'),
                     ),
                   ),
 
@@ -442,13 +370,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPressed: _isLoading ? null : _login,
                       child: _isLoading
                           ? const CircularProgressIndicator()
-                          : const Text(
-                              'Login',
-                              style: TextStyle(fontSize: 16),
-                            ),
+                          : const Text('Login', style: TextStyle(fontSize: 16)),
                     ),
                   ),
-                  
+
                   const SizedBox(height: 16),
 
                   TextButton(
@@ -460,9 +385,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       );
                     },
-                    child: const Text(
-                      "Don't have an account? Register",
-                    ),
+                    child: const Text("Don't have an account? Register"),
                   ),
                 ],
               ),

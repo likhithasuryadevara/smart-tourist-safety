@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
+import '../utils/app_error_message.dart';
+import '../widgets/app_state_widgets.dart';
 import '../widgets/edit_profile_dialog.dart';
 
 class TouristProfile extends StatefulWidget {
@@ -13,6 +16,7 @@ class TouristProfile extends StatefulWidget {
 class _TouristProfileState extends State<TouristProfile> {
   Map<String, dynamic>? _userData;
   bool _loading = true;
+  Object? _loadError;
 
   @override
   void initState() {
@@ -23,7 +27,19 @@ class _TouristProfileState extends State<TouristProfile> {
   Future<void> _loadProfile() async {
     final user = FirebaseAuth.instance.currentUser;
 
-    if (user == null) return;
+    if (user == null) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = StateError('Authentication required');
+        _loading = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _loadError = null;
+    });
 
     try {
       final doc = await FirebaseFirestore.instance
@@ -36,19 +52,16 @@ class _TouristProfileState extends State<TouristProfile> {
       setState(() {
         _userData = doc.data();
         _loading = false;
+        _loadError = doc.exists ? null : StateError('Profile not found');
       });
-    } catch (e) {
+    } catch (error, stackTrace) {
+      AppErrorMessage.log(error, stackTrace, context: 'Loading tourist profile');
       if (!mounted) return;
 
       setState(() {
         _loading = false;
+        _loadError = error;
       });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Unable to load profile: $e'),
-        ),
-      );
     }
   }
 
@@ -79,11 +92,11 @@ class _TouristProfileState extends State<TouristProfile> {
         'Not provided';
 
     final status =
-        _userData?['status']?.toString() ??
+        _userData?['accountStatus']?.toString() ??
         'active';
 
     final approval =
-        _userData?['approval']?.toString() ??
+        _userData?['approvalStatus']?.toString() ??
         'pending';
 
     return Scaffold(
@@ -95,8 +108,16 @@ class _TouristProfileState extends State<TouristProfile> {
         elevation: 0,
       ),
       body: _loading
-          ? const Center(
-              child: CircularProgressIndicator(),
+          ? const AppLoadingState(message: 'Loading your profile...')
+          : _loadError != null
+          ? AppErrorState(
+              message: _userData == null
+                  ? AppErrorMessage.from(
+                      _loadError!,
+                      fallback: 'Unable to load your profile. Please try again.',
+                    )
+                  : 'Unable to refresh your profile. Please try again.',
+              onRetry: _loadProfile,
             )
           : SingleChildScrollView(
               padding: const EdgeInsets.all(24),
@@ -185,6 +206,8 @@ class _TouristProfileState extends State<TouristProfile> {
                         Icons.bloodtype_outlined,
                       ),
 
+                      _emergencyContactsSection(),
+
                       _profileRow(
                         'Account Status',
                         status,
@@ -200,17 +223,7 @@ class _TouristProfileState extends State<TouristProfile> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
-                          onPressed: () {
-                            showDialog(
-                              context: context,
-                              builder: (context) {
-                                return EditProfileDialog(
-                                  userData: _userData,
-                                  onSaved: _loadProfile,
-                                );
-                              },
-                            );
-                          },
+                          onPressed: _editProfile,
                           icon: const Icon(Icons.edit_outlined),
                           label: const Text('Edit Profile'),
                         ),
@@ -220,6 +233,59 @@ class _TouristProfileState extends State<TouristProfile> {
                 ),
               ),
             ),
+    );
+  }
+
+  Widget _emergencyContactsSection() {
+    final emergencyName =
+        _userData?['emergencyContactName']?.toString().trim() ?? '';
+    final emergencyPhone =
+        _userData?['emergencyContactPhone']?.toString().trim() ?? '';
+    final emergencyRelationship =
+        _userData?['emergencyContactRelationship']?.toString().trim() ?? '';
+    final hasContact = emergencyName.isNotEmpty || emergencyPhone.isNotEmpty;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Emergency Contacts',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            if (!hasContact)
+              const Text('No emergency contacts added.')
+            else ...[
+              Text('Name: ${emergencyName.isEmpty ? 'Not provided' : emergencyName}'),
+              Text('Phone: ${emergencyPhone.isEmpty ? 'Not provided' : emergencyPhone}'),
+              if (emergencyRelationship.isNotEmpty)
+                Text('Relationship: $emergencyRelationship'),
+            ],
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: _editProfile,
+                icon: const Icon(Icons.person_add_alt_1),
+                label: Text(hasContact ? 'EDIT CONTACT' : 'ADD CONTACT'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _editProfile() {
+    showDialog(
+      context: context,
+      builder: (context) => EditProfileDialog(
+        userData: _userData,
+        onSaved: _loadProfile,
+      ),
     );
   }
 

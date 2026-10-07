@@ -8,6 +8,7 @@ enum TouristGpsStatus {
   active,
   disabled,
   permissionDenied,
+  permissionDeniedForever,
   unavailable,
   retrying,
 }

@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 
 import '../services/location_service.dart';
 import '../services/notification_service.dart';
+import '../utils/app_error_message.dart';
 import 'sos_active_screen.dart';
 import 'sos_failure_screen.dart';
 
@@ -27,7 +28,7 @@ class _SosCountdownScreenState extends State<SosCountdownScreen> {
 
   final LocationService _locationService = LocationService();
   final NotificationService _notificationService = NotificationService();
-  Position? _currentPosition;
+  bool _isSending = false;
 
   @override
   void initState() {
@@ -70,6 +71,8 @@ class _SosCountdownScreenState extends State<SosCountdownScreen> {
   }
 
   Future<void> _sendSos() async {
+    if (_isSending) return;
+    if (mounted) setState(() => _isSending = true);
     _timer?.cancel();
     final user = FirebaseAuth.instance.currentUser;
 
@@ -98,11 +101,10 @@ class _SosCountdownScreenState extends State<SosCountdownScreen> {
       if (!mounted) return;
 
       Position? sosPosition = position;
+      Object? savedLocationError;
 
       if (sosPosition == null) {
-        debugPrint(
-          'Fresh GPS unavailable. Trying last saved location...',
-        );
+        debugPrint('Fresh GPS unavailable; trying the last saved location.');
 
         try {
           final userDoc = await FirebaseFirestore.instance
@@ -133,36 +135,35 @@ class _SosCountdownScreenState extends State<SosCountdownScreen> {
               isMocked: false,
             );
 
-            debugPrint(
-              'Using last saved GPS: $latitude, $longitude',
-            );
           }
-        } catch (e) {
-          debugPrint(
-            'Unable to read last saved location: $e',
+        } catch (error, stackTrace) {
+          savedLocationError = error;
+          AppErrorMessage.log(
+            error,
+            stackTrace,
+            context: 'Reading saved location for SOS fallback',
           );
         }
       }
 
+      if (!mounted) return;
       if (sosPosition == null) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (context) => const SosFailureScreen(
-              message:
-                  'Unable to get your location. Please check GPS permission and try again.',
+            builder: (context) => SosFailureScreen(
+              message: savedLocationError == null
+                  ? 'Unable to obtain your current location. Please check GPS permission and try again.'
+                  : AppErrorMessage.from(
+                      savedLocationError,
+                      fallback:
+                          'Unable to obtain your current location. Please check GPS and internet access, then try again.',
+                    ),
             ),
           ),
         );
 
         return;
       }
-
-      _currentPosition = sosPosition;
-
-      debugPrint(
-        'SOS location: ${sosPosition.latitude}, '
-        '${sosPosition.longitude}',
-      );
 
     try {
       final userDoc = await FirebaseFirestore.instance
@@ -231,15 +232,18 @@ class _SosCountdownScreenState extends State<SosCountdownScreen> {
         ),
       );
 
-    } catch (e) {
-      debugPrint('SOS creation error: $e');
+    } catch (error, stackTrace) {
+      AppErrorMessage.log(error, stackTrace, context: 'Sending tourist SOS');
 
       if (!mounted) return;
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (context) => SosFailureScreen(
-            message: 'We could not send your SOS request. Please try again.',
+            message: AppErrorMessage.from(
+              error,
+              fallback: 'We could not send your SOS request. Please try again.',
+            ),
           ),
         ),
       );
@@ -274,7 +278,7 @@ class _SosCountdownScreenState extends State<SosCountdownScreen> {
 
                 const SizedBox(height: 24),
 
-                const Text(
+                Text(
                   'SOS ACTIVATED',
                   textAlign: TextAlign.center,
                   style: TextStyle(
@@ -286,8 +290,10 @@ class _SosCountdownScreenState extends State<SosCountdownScreen> {
 
                 const SizedBox(height: 12),
 
-                const Text(
-                  'Emergency SOS will be sent automatically.',
+                Text(
+                  _isSending
+                      ? 'Sending your SOS request...'
+                      : 'Emergency SOS will be sent automatically.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 17,
@@ -346,7 +352,7 @@ class _SosCountdownScreenState extends State<SosCountdownScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: _sendSos,
+                        onPressed: _isSending ? null : _sendSos,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red,
                           foregroundColor: Colors.white,
@@ -354,13 +360,22 @@ class _SosCountdownScreenState extends State<SosCountdownScreen> {
                             vertical: 16,
                           ),
                         ),
-                        child: const Text(
-                          'CONFIRM SOS - SEND NOW',
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        child: _isSending
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                'CONFIRM SOS - SEND NOW',
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                       ),
                     ),
 
@@ -369,7 +384,7 @@ class _SosCountdownScreenState extends State<SosCountdownScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton(
-                        onPressed: _cancelSos,
+                        onPressed: _isSending ? null : _cancelSos,
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.red,
                           side: const BorderSide(

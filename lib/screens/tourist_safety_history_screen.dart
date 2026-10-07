@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../models/tourist_history_model.dart';
 import '../services/tourist_history_service.dart';
+import '../utils/app_error_message.dart';
+import '../widgets/app_state_widgets.dart';
 import 'sos_details_screen.dart';
 
 class TouristSafetyHistoryScreen extends StatefulWidget {
@@ -44,7 +46,7 @@ class _TouristSafetyHistoryScreenState
     _notificationStream = _historyService.watchNotificationHistory(touristId);
   }
 
-  void _retry() {
+  Future<void> _retry() async {
     setState(_startStreams);
   }
 
@@ -72,13 +74,15 @@ class _TouristSafetyHistoryScreenState
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: _sosStream,
         builder: (context, sosSnapshot) {
-          if (sosSnapshot.hasError) return _errorState();
+          if (sosSnapshot.hasError) return _errorState(sosSnapshot.error);
           if (!sosSnapshot.hasData) return _loadingState();
 
           return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
             stream: _notificationStream,
             builder: (context, notificationSnapshot) {
-              if (notificationSnapshot.hasError) return _errorState();
+              if (notificationSnapshot.hasError) {
+                return _errorState(notificationSnapshot.error);
+              }
               if (!notificationSnapshot.hasData) return _loadingState();
 
               final history = _historyService.combineHistory(
@@ -252,57 +256,30 @@ class _TouristSafetyHistoryScreenState
   }
 
   Widget _loadingState() {
-    return const Center(child: CircularProgressIndicator());
+    return const AppLoadingState(message: 'Loading safety history...');
   }
 
-  Widget _errorState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.cloud_off_outlined, size: 54, color: Colors.grey),
-            const SizedBox(height: 12),
-            const Text(
-              'Unable to load safety history. Check your connection and try again.',
-              textAlign: TextAlign.center,
+  Widget _errorState(Object? error) {
+    return AppErrorState(
+      message: error == null
+          ? 'Unable to load safety history. Please try again.'
+          : AppErrorMessage.from(
+              error,
+              fallback: 'Unable to load safety history. Please try again.',
             ),
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              onPressed: _retry,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
-            ),
-          ],
-        ),
-      ),
+      onRetry: _retry,
     );
   }
 
   Widget _emptyState(bool noHistoryAtAll) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.history, size: 70, color: Colors.grey),
-            const SizedBox(height: 16),
-            Text(
-              noHistoryAtAll
-                  ? 'No Safety History'
-                  : 'No ${_filterLabel(_selectedFilter)} History',
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Your safety events will appear here.',
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
+    final message = _selectedFilter == TouristHistoryFilter.sos
+        ? 'No SOS incidents found.'
+        : noHistoryAtAll
+        ? 'No safety history yet.'
+        : 'No ${_filterLabel(_selectedFilter)} history found.';
+    return AppEmptyState(
+      message: '$message\nYour safety events will appear here.',
+      icon: Icons.history,
     );
   }
 

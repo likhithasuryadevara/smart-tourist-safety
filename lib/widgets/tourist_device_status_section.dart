@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/tourist_device_status_model.dart';
 import '../services/safe_zone_status_service.dart';
 import '../services/tourist_device_status_service.dart';
+import '../utils/app_error_message.dart';
 
 class TouristDeviceStatusSection extends StatefulWidget {
   const TouristDeviceStatusSection({
@@ -21,7 +22,7 @@ class TouristDeviceStatusSection extends StatefulWidget {
 
 class _TouristDeviceStatusSectionState
     extends State<TouristDeviceStatusSection> {
-  late final Stream<TouristDeviceStatusModel> _deviceStatusStream;
+  late Stream<TouristDeviceStatusModel> _deviceStatusStream;
   late final Stream<TouristSafetySnapshot> _gpsStatusStream;
   late final SafeZoneStatusService _safetyStatusService;
 
@@ -29,38 +30,59 @@ class _TouristDeviceStatusSectionState
   void initState() {
     super.initState();
     _safetyStatusService = SafeZoneStatusService();
-    _deviceStatusStream =
-        widget.deviceStatusStream ??
-        TouristDeviceStatusService().watchCurrentTouristDeviceStatus();
+    _deviceStatusStream = _createDeviceStatusStream();
     _gpsStatusStream =
         widget.gpsStatusStream ?? _safetyStatusService.statusStream;
+  }
+
+  Stream<TouristDeviceStatusModel> _createDeviceStatusStream() =>
+      widget.deviceStatusStream ??
+      TouristDeviceStatusService().watchCurrentTouristDeviceStatus();
+
+  Future<void> _retryDeviceStatus() async {
+    setState(() => _deviceStatusStream = _createDeviceStatusStream());
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF111C31),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF263752)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE4EBEA)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x080F766E),
+            blurRadius: 12,
+            offset: Offset(0, 3),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Row(
             children: [
-              Icon(Icons.devices_other, color: Color(0xFF2DD4BF)),
+              CircleAvatar(
+                radius: 17,
+                backgroundColor: Color(0xFFE6F4F1),
+                child: Icon(
+                  Icons.devices_other_outlined,
+                  color: Color(0xFF0F766E),
+                  size: 19,
+                ),
+              ),
               SizedBox(width: 9),
               Expanded(
                 child: Text(
-                  'TOURIST DEVICE STATUS',
+                  'Tourist Device Status',
                   softWrap: true,
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF172B35),
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
@@ -72,14 +94,14 @@ class _TouristDeviceStatusSectionState
             initialData: const TouristDeviceStatusModel(),
             builder: (context, deviceSnapshot) {
               if (deviceSnapshot.hasError) {
-                debugPrint(
-                  'Tourist device status stream failed: '
-                  '${deviceSnapshot.error}',
+                AppErrorMessage.log(
+                  deviceSnapshot.error!,
+                  deviceSnapshot.stackTrace ?? StackTrace.current,
+                  context: 'Loading tourist device status',
                 );
               }
-              final device = deviceSnapshot.hasError || !deviceSnapshot.hasData
-                  ? const TouristDeviceStatusModel()
-                  : deviceSnapshot.data!;
+              final device = deviceSnapshot.data ??
+                  const TouristDeviceStatusModel();
 
               return StreamBuilder<TouristSafetySnapshot>(
                 stream: _gpsStatusStream,
@@ -90,11 +112,7 @@ class _TouristDeviceStatusSectionState
                       TouristGpsStatus.unavailable;
                   return LayoutBuilder(
                     builder: (context, constraints) {
-                      final columns = constraints.maxWidth >= 760
-                          ? 3
-                          : constraints.maxWidth >= 480
-                          ? 2
-                          : 1;
+                      final columns = constraints.maxWidth >= 760 ? 3 : 2;
                       final spacing = 12.0;
                       final itemWidth =
                           (constraints.maxWidth - spacing * (columns - 1)) /
@@ -140,6 +158,47 @@ class _TouristDeviceStatusSectionState
                         spacing: spacing,
                         runSpacing: spacing,
                         children: [
+                          if (deviceSnapshot.hasError)
+                            SizedBox(
+                              width: constraints.maxWidth,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                    color: const Color(0xFFFFF7F5),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: const Color(0xFFF3D6D1),
+                                    ),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          AppErrorMessage.from(
+                                            deviceSnapshot.error!,
+                                            fallback:
+                                                'Unable to load device status.',
+                                          ),
+                                          style: const TextStyle(
+                                            color: Color(0xFF8F352D),
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ),
+                                      TextButton(
+                                        onPressed: _retryDeviceStatus,
+                                        style: TextButton.styleFrom(
+                                          foregroundColor:
+                                              const Color(0xFF0F766E),
+                                        ),
+                                        child: const Text('Retry'),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
                           for (final value in values)
                             SizedBox(width: itemWidth, child: value),
                         ],
@@ -159,6 +218,8 @@ class _TouristDeviceStatusSectionState
     TouristGpsStatus.active => 'ACTIVE',
     TouristGpsStatus.disabled => 'DISABLED',
     TouristGpsStatus.permissionDenied => 'PERMISSION DENIED',
+    TouristGpsStatus.permissionDeniedForever =>
+      'PERMISSION DENIED - SETTINGS REQUIRED',
     TouristGpsStatus.unavailable => 'UNAVAILABLE',
     TouristGpsStatus.retrying => 'RETRYING',
   };
@@ -212,37 +273,45 @@ class _DeviceStatusValue extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       constraints: const BoxConstraints(minHeight: 82),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(11),
       decoration: BoxDecoration(
-        color: const Color(0xFF182640),
-        borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: const Color(0xFF263752)),
+        color: const Color(0xFFFBFCFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFEBF0EF)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: 16, color: const Color(0xFF94A3B8)),
-              const SizedBox(width: 7),
+              Icon(icon, size: 15, color: const Color(0xFF7A8A90)),
+              const SizedBox(width: 5),
               Expanded(
                 child: Text(
                   title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: Color(0xFF94A3B8),
-                    fontSize: 12,
+                    color: Color(0xFF73818A),
+                    fontSize: 10,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Text(
             value,
             softWrap: true,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 15,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: value == 'ACTIVE'
+                  ? const Color(0xFF16805D)
+                  : value == 'Unavailable'
+                  ? const Color(0xFF7A8A90)
+                  : const Color(0xFF263943),
+              fontSize: 13,
               fontWeight: FontWeight.w700,
             ),
           ),

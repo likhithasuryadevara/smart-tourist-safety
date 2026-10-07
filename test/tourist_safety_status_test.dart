@@ -49,6 +49,13 @@ void main() {
       expect(statusService.snapshot.zoneStatus, TouristZoneStatus.unknown);
       expect(statusService.snapshot.safetyIndicator, 'UNKNOWN');
 
+      statusService.updateGpsStatus(TouristGpsStatus.permissionDeniedForever);
+      expect(
+        statusService.snapshot.gpsStatus,
+        TouristGpsStatus.permissionDeniedForever,
+      );
+      expect(statusService.snapshot.zoneStatus, TouristZoneStatus.unknown);
+
       statusService.updateGpsStatus(TouristGpsStatus.disabled);
       expect(statusService.snapshot.gpsStatus, TouristGpsStatus.disabled);
       statusService.updateGpsStatus(TouristGpsStatus.unavailable);
@@ -159,12 +166,16 @@ void main() {
       expect(find.text('UNAVAILABLE'), findsOneWidget);
       expect(find.text('Current Zone'), findsOneWidget);
       expect(find.text('UNKNOWN'), findsNWidgets(2));
-      expect(find.text('Last Location: 0.010000, 0.000000'), findsOneWidget);
-      expect(find.textContaining('Updated: 2026-10-07'), findsOneWidget);
+      expect(find.text('LAST LOCATION'), findsOneWidget);
+      expect(find.text('0.010000, 0.000000'), findsOneWidget);
+      expect(find.textContaining('Updated 2026-10-07'), findsOneWidget);
       expect(find.text('Distance to Safe Zone'), findsOneWidget);
-      expect(find.text('Unable to obtain current location.'), findsOneWidget);
-      expect(find.text('RETRY GPS'), findsOneWidget);
-      await tester.tap(find.text('RETRY GPS'));
+      expect(
+        find.text('Unable to obtain your current location. Please try again.'),
+        findsOneWidget,
+      );
+      expect(find.text('Retry GPS'), findsOneWidget);
+      await tester.tap(find.text('Retry GPS'));
       await tester.pump();
       expect(retryCount, 1);
       statusService.registerRetryHandler(null);

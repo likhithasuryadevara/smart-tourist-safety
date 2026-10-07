@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/tourist_settings_model.dart';
+import '../utils/app_error_message.dart';
 import 'tourist_settings_service.dart';
 
 class SafeZone {
@@ -37,24 +38,17 @@ class DangerZone {
 class SafeZoneService {
   Future<SafeZone?> getActiveSafeZone() async {
     try {
-      debugPrint('🔄 Loading active safe zone...');
-
       final snapshot = await FirebaseFirestore.instance
           .collection('safe_zones')
           .where('isActive', isEqualTo: true)
           .limit(1)
           .get();
 
-      debugPrint('📄 Documents found: ${snapshot.docs.length}');
-
       if (snapshot.docs.isEmpty) {
-        debugPrint('❌ No active safe zone found.');
         return null;
       }
 
       final data = snapshot.docs.first.data();
-
-      debugPrint('✅ Safe zone data: $data');
 
       final safeZone = SafeZone(
         latitude: (data['latitude'] as num).toDouble(),
@@ -62,24 +56,19 @@ class SafeZoneService {
         radius: (data['radius'] as num).toDouble(),
       );
 
-      debugPrint(
-        '✅ Active Safe Zone loaded: '
-        'latitude=${safeZone.latitude}, '
-        'longitude=${safeZone.longitude}, '
-        'radius=${safeZone.radius}m',
-      );
-
       return safeZone;
-    } catch (e) {
-      debugPrint('❌ SAFE ZONE FIRESTORE ERROR: $e');
-      return null;
+    } catch (e, stackTrace) {
+      AppErrorMessage.log(
+        e,
+        stackTrace,
+        context: 'Loading active safe zone',
+      );
+      rethrow;
     }
   }
 
   Future<List<DangerZone>> getActiveDangerZones() async {
     try {
-      debugPrint('🔄 Loading active danger zones...');
-
       final snapshot = await FirebaseFirestore.instance
           .collection('danger_zones')
           .where('isActive', isEqualTo: true)
@@ -96,11 +85,14 @@ class SafeZoneService {
         );
       }).toList();
 
-      debugPrint('✅ Loaded ${dangerZones.length} active danger zone(s).');
       return dangerZones;
-    } catch (e) {
-      debugPrint('❌ DANGER ZONE FIRESTORE ERROR: $e');
-      return [];
+    } catch (e, stackTrace) {
+      AppErrorMessage.log(
+        e,
+        stackTrace,
+        context: 'Loading active danger zones',
+      );
+      rethrow;
     }
   }
 

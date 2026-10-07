@@ -32,8 +32,18 @@ class StatsSection extends StatelessWidget {
           TouristGpsStatus.active => 'ACTIVE',
           TouristGpsStatus.disabled => 'DISABLED',
           TouristGpsStatus.permissionDenied => 'PERMISSION DENIED',
+          TouristGpsStatus.permissionDeniedForever =>
+            'PERMISSION DENIED - SETTINGS REQUIRED',
           TouristGpsStatus.unavailable => 'UNAVAILABLE',
           TouristGpsStatus.retrying => 'RETRYING',
+        };
+        final gpsColor = switch (status.gpsStatus) {
+          TouristGpsStatus.active => const Color(0xFF16805D),
+          TouristGpsStatus.retrying => const Color(0xFFAE7411),
+          TouristGpsStatus.disabled ||
+          TouristGpsStatus.permissionDenied ||
+          TouristGpsStatus.permissionDeniedForever => const Color(0xFF697980),
+          TouristGpsStatus.unavailable => const Color(0xFF697980),
         };
 
         final cards = [
@@ -48,9 +58,7 @@ class StatsSection extends StatelessWidget {
             icon: Icons.location_on_rounded,
             title: 'Live Location',
             value: gpsLabel,
-            valueColor: status.gpsStatus == TouristGpsStatus.active
-                ? const Color(0xFF2563EB)
-                : const Color(0xFFB45309),
+            valueColor: gpsColor,
           ),
 
           _StatCard(
@@ -64,7 +72,7 @@ class StatsSection extends StatelessWidget {
             icon: Icons.emergency_rounded,
             title: 'Emergency',
             value: 'READY',
-            valueColor: Color(0xFFE11D48),
+            valueColor: Color(0xFF16805D),
           ),
         ];
 
@@ -121,26 +129,47 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF111C31),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF263752)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE4EBEA)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x080F766E),
+            blurRadius: 10,
+            offset: Offset(0, 3),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: const Color(0xFF94A3B8), size: 22),
-          const SizedBox(height: 14),
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: valueColor.withValues(alpha: 0.09),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: valueColor, size: 19),
+          ),
+          const SizedBox(height: 11),
           Text(
             title,
-            style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 10),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Color(0xFF73818A),
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+            ),
           ),
           const SizedBox(height: 5),
           Text(
             value,
             style: TextStyle(
               color: valueColor,
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],

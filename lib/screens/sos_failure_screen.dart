@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-
+import 'sos_countdown_screen.dart';
 
 class SosFailureScreen extends StatelessWidget {
   final String message;
@@ -104,7 +104,11 @@ class SosFailureScreen extends StatelessWidget {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.of(context).pop();
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (context) => const SosCountdownScreen(),
+                        ),
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.orange,

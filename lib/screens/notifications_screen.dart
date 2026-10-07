@@ -4,9 +4,39 @@ import 'package:flutter/material.dart';
 
 import '../models/tourist_settings_model.dart';
 import '../services/tourist_settings_service.dart';
+import '../utils/app_error_message.dart';
+import '../widgets/app_state_widgets.dart';
 
-class NotificationsScreen extends StatelessWidget {
+class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
+
+  @override
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  late Stream<QuerySnapshot> _notifications;
+  final Set<String> _updatingReadStatus = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _createNotificationsStream();
+  }
+
+  void _createNotificationsStream() {
+    final user = FirebaseAuth.instance.currentUser;
+    _notifications = user == null
+        ? const Stream.empty()
+        : FirebaseFirestore.instance
+              .collection('notifications')
+              .where('touristId', isEqualTo: user.uid)
+              .snapshots();
+  }
+
+  Future<void> _retry() async {
+    setState(_createNotificationsStream);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,18 +59,21 @@ class NotificationsScreen extends StatelessWidget {
           final settings =
               settingsSnapshot.data ?? const TouristSettingsModel();
           return StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('notifications')
-                .where('touristId', isEqualTo: user.uid)
-                .snapshots(),
+            stream: _notifications,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
+                return const AppLoadingState(
+                  message: 'Loading notifications...',
+                );
               }
 
               if (snapshot.hasError) {
-                return const Center(
-                  child: Text('Unable to load notifications.'),
+                return AppErrorState(
+                  message: AppErrorMessage.from(
+                    snapshot.error!,
+                    fallback: 'Unable to load notifications. Please try again.',
+                  ),
+                  onRetry: _retry,
                 );
               }
 
@@ -53,30 +86,9 @@ class NotificationsScreen extends StatelessWidget {
               }).toList();
 
               if (docs.isEmpty) {
-                return const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.notifications_none,
-                        size: 80,
-                        color: Colors.grey,
-                      ),
-                      SizedBox(height: 16),
-                      Text(
-                        'No Notifications',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        'Your safety notifications will appear here.',
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
+                return const AppEmptyState(
+                  message: 'No Notifications\nYour safety notifications will appear here.',
+                  icon: Icons.notifications_none,
                 );
               }
 
@@ -94,21 +106,17 @@ class NotificationsScreen extends StatelessWidget {
 
                   final isRead = data['isRead'] == true;
 
-                  final timestamp = data['createdAt'] as Timestamp?;
+                  final createdAt = data['createdAt'];
+                  final timestamp = createdAt is Timestamp ? createdAt : null;
 
                   final dateText = timestamp != null
                       ? _formatDate(timestamp.toDate())
                       : 'Date unavailable';
 
                   return InkWell(
-                    onTap: () async {
-                      if (!isRead) {
-                        await FirebaseFirestore.instance
-                            .collection('notifications')
-                            .doc(docs[index].id)
-                            .update({'isRead': true});
-                      }
-                    },
+                    onTap: isRead || _updatingReadStatus.contains(docs[index].id)
+                        ? null
+                        : () => _markRead(docs[index].id),
                     child: Card(
                       margin: const EdgeInsets.only(bottom: 12),
                       color: isRead ? Colors.white : const Color(0xFFE6FFFA),
@@ -155,7 +163,15 @@ class NotificationsScreen extends StatelessWidget {
                                 ],
                               ),
                             ),
-                            if (!isRead)
+                            if (_updatingReadStatus.contains(docs[index].id))
+                              const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            else if (!isRead)
                               Container(
                                 width: 9,
                                 height: 9,
@@ -176,6 +192,37 @@ class NotificationsScreen extends StatelessWidget {
         },
       ),
     );
+  }
+
+  Future<void> _markRead(String notificationId) async {
+    if (_updatingReadStatus.contains(notificationId)) return;
+    setState(() => _updatingReadStatus.add(notificationId));
+    try {
+      await FirebaseFirestore.instance
+          .collection('notifications')
+          .doc(notificationId)
+          .update({'isRead': true});
+    } catch (error, stackTrace) {
+      AppErrorMessage.log(
+        error,
+        stackTrace,
+        context: 'Marking notification as read',
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppErrorMessage.from(
+                error,
+                fallback: 'Unable to update this notification. Please try again.',
+              ),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _updatingReadStatus.remove(notificationId));
+    }
   }
 
   static String _formatDate(DateTime date) {

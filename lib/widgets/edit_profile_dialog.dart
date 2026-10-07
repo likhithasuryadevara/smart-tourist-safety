@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../utils/app_error_message.dart';
+
 class EditProfileDialog extends StatefulWidget {
   final Map<String, dynamic>? userData;
   final VoidCallback onSaved;
@@ -75,7 +77,10 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
   Future<void> _saveProfile() async {
     final user = FirebaseAuth.instance.currentUser;
 
-    if (user == null) return;
+    if (user == null) {
+      _showError('Please sign in again to update your profile.');
+      return;
+    }
 
     if (_nameController.text.trim().isEmpty) {
       _showError('Name cannot be empty.');
@@ -141,14 +146,20 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
 
       Navigator.pop(context);
       widget.onSaved();
-    } catch (e) {
+    } catch (error, stackTrace) {
+      AppErrorMessage.log(error, stackTrace, context: 'Updating tourist profile');
       if (!mounted) return;
 
       setState(() {
         _saving = false;
       });
 
-      _showError('Unable to update profile.');
+      _showError(
+        AppErrorMessage.from(
+          error,
+          fallback: 'Unable to update profile. Please try again.',
+        ),
+      );
     }
   }
 

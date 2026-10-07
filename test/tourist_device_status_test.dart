@@ -91,7 +91,7 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('TOURIST DEVICE STATUS'), findsOneWidget);
+      expect(find.text('Tourist Device Status'), findsOneWidget);
       expect(find.text('Device ID'), findsOneWidget);
       expect(find.text('Device Status'), findsOneWidget);
       expect(find.text('Battery'), findsOneWidget);

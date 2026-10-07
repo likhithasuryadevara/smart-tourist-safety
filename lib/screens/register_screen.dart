@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../utils/app_error_message.dart';
+
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -121,8 +123,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
           );
         },
       );
-    } on FirebaseAuthException catch (e) {
-      String message = 'Registration failed.';
+    } on FirebaseAuthException catch (e, stackTrace) {
+      AppErrorMessage.log(e, stackTrace, context: 'Registering tourist');
+      String message = AppErrorMessage.from(
+        e,
+        fallback: 'Registration failed. Please try again.',
+      );
 
       if (e.code == 'weak-password') {
         message = 'Password must be at least 6 characters.';
@@ -137,22 +143,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
       );
-    } on FirebaseException catch (e) {
+    } on FirebaseException catch (e, stackTrace) {
+      AppErrorMessage.log(e, stackTrace, context: 'Saving tourist registration');
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Firestore error: ${e.message ?? 'Unable to save profile.'}',
+            AppErrorMessage.from(
+              e,
+              fallback: 'Unable to save your profile. Please try again.',
+            ),
           ),
         ),
       );
-    } catch (e) {
+    } catch (error, stackTrace) {
+      AppErrorMessage.log(
+        error,
+        stackTrace,
+        context: 'Registering tourist',
+      );
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Something went wrong: $e'),
+          content: Text(
+            AppErrorMessage.from(
+              error,
+              fallback: 'Registration failed. Please try again.',
+            ),
+          ),
         ),
       );
     } finally {

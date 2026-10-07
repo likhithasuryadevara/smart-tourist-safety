@@ -12,42 +12,43 @@ class WelcomeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF111C31),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFF263752),
-        ),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE4EBEA)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A172B35),
+            blurRadius: 12,
+            offset: Offset(0, 3),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: const BoxDecoration(
-              color: Color(0xFF0F766E),
-              shape: BoxShape.circle,
-            ),
+          CircleAvatar(
+            radius: 24,
+            backgroundColor: const Color(0xFFE6F4F1),
             child: const Icon(
-              Icons.person,
-              color: Colors.white,
-              size: 28,
+              Icons.person_outline_rounded,
+              color: Color(0xFF0F766E),
+              size: 27,
             ),
           ),
 
-          const SizedBox(width: 16),
+          const SizedBox(width: 13),
 
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Welcome back!',
+                  'Welcome back',
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF172B35),
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
 
@@ -55,9 +56,12 @@ class WelcomeCard extends StatelessWidget {
 
                 Text(
                   name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: Color(0xFF94A3B8),
-                    fontSize: 12,
+                    color: Color(0xFF52636B),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
 
@@ -66,18 +70,21 @@ class WelcomeCard extends StatelessWidget {
                 const Text(
                   'Your safety status and live location are being monitored.',
                   style: TextStyle(
-                    color: Color(0xFFCBD5E1),
-                    fontSize: 11,
+                    color: Color(0xFF73818A),
+                    fontSize: 12,
                   ),
                 ),
               ],
             ),
           ),
 
-          const Icon(
-            Icons.verified_user_rounded,
-            color: Color(0xFF14B8A6),
-            size: 32,
+          const Tooltip(
+            message: 'Safety monitoring enabled',
+            child: Icon(
+              Icons.verified_user_rounded,
+              color: Color(0xFF16805D),
+              size: 26,
+            ),
           ),
         ],
       ),

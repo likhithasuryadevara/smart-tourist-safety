@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../models/tourist_settings_model.dart';
 import '../services/safe_zone_status_service.dart';
 import '../services/tourist_settings_service.dart';
+import '../utils/app_error_message.dart';
+import '../widgets/app_state_widgets.dart';
 
 class TouristSettingsScreen extends StatefulWidget {
   const TouristSettingsScreen({super.key, this.settingsRepository});
@@ -53,8 +55,11 @@ class _TouristSettingsScreenState extends State<TouristSettingsScreen>
         settings.effectiveLocationTracking,
       );
     } catch (error, stackTrace) {
-      debugPrint('Tourist settings load failed: $error');
-      debugPrint('Tourist settings load stack trace: $stackTrace');
+      AppErrorMessage.log(
+        error,
+        stackTrace,
+        context: 'Loading tourist settings',
+      );
       if (!mounted) return;
       setState(() {
         _loadError = error;
@@ -73,9 +78,12 @@ class _TouristSettingsScreenState extends State<TouristSettingsScreen>
         settings.effectiveLocationTracking,
       );
     } catch (error, stackTrace) {
-      debugPrint('Tourist settings refresh failed: $error');
-      debugPrint('Tourist settings refresh stack trace: $stackTrace');
-      if (mounted) _showError();
+      AppErrorMessage.log(
+        error,
+        stackTrace,
+        context: 'Refreshing tourist settings',
+      );
+      if (mounted) _showError(error);
     }
   }
 
@@ -98,11 +106,14 @@ class _TouristSettingsScreenState extends State<TouristSettingsScreen>
         );
       }
     } catch (error, stackTrace) {
-      debugPrint('Unable to save tourist setting ${setting.name}: $error');
-      debugPrint('Tourist setting save stack trace: $stackTrace');
+      AppErrorMessage.log(
+        error,
+        stackTrace,
+        context: 'Saving tourist setting ${setting.name}',
+      );
       if (!mounted) return;
       setState(() => _settings = previous);
-      _showError();
+      _showError(error);
     } finally {
       if (mounted) setState(() => _saving = null);
     }
@@ -140,10 +151,15 @@ class _TouristSettingsScreenState extends State<TouristSettingsScreen>
     };
   }
 
-  void _showError() {
+  void _showError(Object error) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Unable to save setting. Please try again.'),
+      SnackBar(
+        content: Text(
+          AppErrorMessage.from(
+            error,
+            fallback: 'Unable to save setting. Please try again.',
+          ),
+        ),
       ),
     );
   }
@@ -164,7 +180,7 @@ class _TouristSettingsScreenState extends State<TouristSettingsScreen>
         foregroundColor: Colors.white,
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const AppLoadingState(message: 'Loading your settings...')
           : _loadError != null
           ? _buildLoadError()
           : _buildSettings(),
@@ -172,22 +188,13 @@ class _TouristSettingsScreenState extends State<TouristSettingsScreen>
   }
 
   Widget _buildLoadError() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Unable to load settings.'),
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              onPressed: _loadSettings,
-              icon: const Icon(Icons.refresh),
-              label: const Text('RETRY'),
-            ),
-          ],
-        ),
+    return AppErrorState(
+      message: AppErrorMessage.from(
+        _loadError!,
+        fallback: 'Unable to load settings.',
       ),
+      onRetry: _loadSettings,
+      retryLabel: 'RETRY',
     );
   }
 

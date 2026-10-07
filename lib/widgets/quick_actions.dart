@@ -34,34 +34,27 @@ class QuickActions extends StatelessWidget {
       ),
     ];
 
-    if (desktop) {
-      return Row(
-        children: [
-          for (int i = 0; i < actions.length; i++) ...[
-            Expanded(
-              child: _ActionCard(
-                data: actions[i],
-                onTap: () => onAction(actions[i].title),
-              ),
-            ),
-            if (i != actions.length - 1)
-              const SizedBox(width: 14),
-          ],
-        ],
-      );
-    }
+    final width = MediaQuery.of(context).size.width;
+    final columns = desktop
+        ? 3
+        : width >= 520
+        ? 3
+        : 2;
 
-    return Column(
-      children: [
-        for (int i = 0; i < actions.length; i++) ...[
-          _ActionCard(
-            data: actions[i],
-            onTap: () => onAction(actions[i].title),
-          ),
-          if (i != actions.length - 1)
-            const SizedBox(height: 12),
-        ],
-      ],
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: actions.length,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: columns,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        mainAxisExtent: 126,
+      ),
+      itemBuilder: (context, index) => _ActionCard(
+        data: actions[index],
+        onTap: () => onAction(actions[index].title),
+      ),
     );
   }
 }
@@ -79,42 +72,57 @@ class _ActionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.all(14),
+      borderRadius: BorderRadius.circular(14),
+      child: Ink(
         decoration: BoxDecoration(
-          color: const Color(0xFF111C31),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: const Color(0xFF263752),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(
-              data.icon,
-              color: data.color,
-              size: 26,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              data.title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              data.subtitle,
-              style: const TextStyle(
-                color: Color(0xFF94A3B8),
-                fontSize: 9,
-              ),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE4EBEA)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x080F766E),
+              blurRadius: 10,
+              offset: Offset(0, 3),
             ),
           ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: data.color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: Icon(data.icon, color: data.color, size: 21),
+              ),
+              const Spacer(),
+              Text(
+                data.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFF263943),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                data.subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFF73818A),
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

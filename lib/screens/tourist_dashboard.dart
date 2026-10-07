@@ -6,7 +6,9 @@ import 'package:flutter/material.dart';
 
 import '../services/notification_service.dart';
 import '../services/voice_sos_service.dart';
+import '../utils/app_error_message.dart';
 import '../widgets/danger_banner.dart';
+import '../widgets/dashboard_navigation_card.dart';
 import '../widgets/emergency_panel.dart';
 import '../widgets/live_safety_map.dart';
 import '../widgets/quick_actions.dart';
@@ -40,6 +42,9 @@ class _TouristDashboardState extends State<TouristDashboard>
   Timer? _voiceRestartTimer;
 
   String _name = '';
+  String? _nameError;
+  bool _nameLoading = true;
+  bool _loggingOut = false;
   String _voiceSosMessage = 'Starting automatic Voice SOS monitoring...';
   bool _voiceSosListening = false;
   bool _voiceSosStarting = false;
@@ -281,30 +286,72 @@ class _TouristDashboardState extends State<TouristDashboard>
   Future<void> _loadTouristName() async {
     final user = FirebaseAuth.instance.currentUser;
 
-    if (user == null) return;
+    if (user == null) {
+      if (mounted) {
+        setState(() {
+          _nameLoading = false;
+          _nameError = 'Please sign in again to load your profile.';
+        });
+      }
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _nameLoading = true;
+        _nameError = null;
+      });
+    }
 
     try {
       final doc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
-          .get();
+          .get()
+          .timeout(const Duration(seconds: 15));
 
       if (!mounted) return;
 
-      if (doc.exists) {
-        final data = doc.data();
-
-        setState(() {
-          _name = data?['name']?.toString() ?? '';
-        });
-      }
-    } catch (e) {
-      debugPrint('Error loading tourist name: $e');
+      setState(() {
+        _name = doc.data()?['name']?.toString() ?? '';
+        _nameLoading = false;
+        _nameError = doc.exists ? null : 'Your profile could not be found.';
+      });
+    } catch (error, stackTrace) {
+      AppErrorMessage.log(
+        error,
+        stackTrace,
+        context: 'Loading dashboard profile',
+      );
+      if (!mounted) return;
+      setState(() {
+        _nameLoading = false;
+        _nameError = AppErrorMessage.from(
+          error,
+          fallback: 'Unable to load your profile. Please try again.',
+        );
+      });
     }
   }
 
   Future<void> _logout() async {
-    await FirebaseAuth.instance.signOut();
+    if (_loggingOut) return;
+    setState(() => _loggingOut = true);
+    try {
+      await FirebaseAuth.instance.signOut();
+    } catch (error, stackTrace) {
+      AppErrorMessage.log(error, stackTrace, context: 'Signing out tourist');
+      if (mounted) {
+        _showMessage(
+          AppErrorMessage.from(
+            error,
+            fallback: 'Unable to sign out. Please try again.',
+          ),
+        );
+        setState(() => _loggingOut = false);
+      }
+      return;
+    }
 
     if (!mounted) return;
 
@@ -347,10 +394,25 @@ class _TouristDashboardState extends State<TouristDashboard>
                   },
                 ),
 
+                if (_nameLoading) const LinearProgressIndicator(minHeight: 2),
+                if (_nameError != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                    child: Row(
+                      children: [
+                        Expanded(child: Text(_nameError!)),
+                        TextButton(
+                          onPressed: _nameLoading ? null : _loadTouristName,
+                          child: const Text('RETRY'),
+                        ),
+                      ],
+                    ),
+                  ),
+
                 Expanded(
                   child: SingleChildScrollView(
                     padding: EdgeInsets.symmetric(
-                      horizontal: desktop ? 24 : 12,
+                      horizontal: desktop ? 24 : 16,
                       vertical: 14,
                     ),
                     child: Center(
@@ -396,108 +458,65 @@ class _TouristDashboardState extends State<TouristDashboard>
                               },
                             ),
 
-                            const SizedBox(height: 14),
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                onPressed: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          const NotificationsScreen(),
-                                    ),
-                                  );
-                                },
-                                icon: const Icon(
-                                  Icons.notifications,
-                                  color: Colors.teal,
-                                ),
-                                label: const Text(
-                                  'Notifications',
-                                  style: TextStyle(
-                                    color: Colors.teal,
-                                    fontWeight: FontWeight.bold,
+                            const SizedBox(height: 18),
+                            DashboardNavigationCard(
+                              icon: Icons.notifications_none_rounded,
+                              title: 'Notifications',
+                              subtitle: 'View your latest safety alerts',
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const NotificationsScreen(),
                                   ),
-                                ),
-                              ),
+                                );
+                              },
                             ),
 
-                            const SizedBox(height: 12),
-
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                onPressed: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          const TouristSafetyHistoryScreen(),
-                                    ),
-                                  );
-                                },
-                                icon: const Icon(
-                                  Icons.history,
-                                  color: Colors.teal,
-                                ),
-                                label: const Text(
-                                  'Safety History',
-                                  style: TextStyle(
-                                    color: Colors.teal,
-                                    fontWeight: FontWeight.bold,
+                            const SizedBox(height: 10),
+                            DashboardNavigationCard(
+                              icon: Icons.history_rounded,
+                              title: 'Safety History',
+                              subtitle: 'Review your safety events',
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const TouristSafetyHistoryScreen(),
                                   ),
-                                ),
-                              ),
+                                );
+                              },
                             ),
 
-                            const SizedBox(height: 12),
-
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                onPressed: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          const SosHistoryScreen(),
-                                    ),
-                                  );
-                                },
-                                icon: const Icon(Icons.sos, color: Colors.red),
-                                label: const Text(
-                                  'SOS History',
-                                  style: TextStyle(
-                                    color: Colors.red,
-                                    fontWeight: FontWeight.bold,
+                            const SizedBox(height: 10),
+                            DashboardNavigationCard(
+                              icon: Icons.sos_rounded,
+                              title: 'SOS History',
+                              subtitle: 'View emergency incidents',
+                              iconColor: const Color(0xFFB5473C),
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const SosHistoryScreen(),
                                   ),
-                                ),
-                              ),
+                                );
+                              },
                             ),
 
-                            const SizedBox(height: 12),
-
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                onPressed: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute<void>(
-                                      builder: (context) =>
-                                          const TouristSettingsScreen(),
-                                    ),
-                                  );
-                                },
-                                icon: const Icon(
-                                  Icons.settings_outlined,
-                                  color: Colors.teal,
-                                ),
-                                label: const Text(
-                                  'Settings',
-                                  style: TextStyle(
-                                    color: Colors.teal,
-                                    fontWeight: FontWeight.bold,
+                            const SizedBox(height: 10),
+                            DashboardNavigationCard(
+                              icon: Icons.settings_outlined,
+                              title: 'Settings',
+                              subtitle: 'Manage your safety preferences',
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (context) =>
+                                        const TouristSettingsScreen(),
                                   ),
-                                ),
-                              ),
+                                );
+                              },
                             ),
 
                             const SizedBox(height: 14),

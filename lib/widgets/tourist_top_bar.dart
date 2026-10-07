@@ -15,192 +15,164 @@ class TouristTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 900;
-
-    return Container(
-      height: 72,
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 16 : 28,
-      ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(
-          bottom: BorderSide(
-            color: Color(0xFFE5E7EB),
-            width: 1,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final isMobile = width < 760;
+        final isCompact = width < 360;
+        return Container(
+          constraints: const BoxConstraints(minHeight: 68),
+          padding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 16 : 28,
+            vertical: 8,
           ),
-        ),
-      ),
-      child: Row(
-        children: [
-          // LOGO
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: const Color(0xFF0F766E),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.shield_rounded,
-              color: Colors.white,
-              size: 23,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(
+              bottom: BorderSide(color: Color(0xFFE7ECEF), width: 1),
             ),
           ),
-
-          const SizedBox(width: 12),
-
-          // BRAND
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text(
-                'Smart Tourist Safety',
-                style: TextStyle(
-                  color: Color(0xFF111827),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.2,
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE6F4F1),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: const Icon(
+                  Icons.shield_rounded,
+                  color: Color(0xFF0F766E),
+                  size: 22,
                 ),
               ),
-              SizedBox(height: 2),
-              Text(
-                'Tourist Dashboard',
-                style: TextStyle(
-                  color: Color(0xFF6B7280),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
+
+              SizedBox(width: isCompact ? 9 : 12),
+
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isCompact ? 'Tourist Safety' : 'Smart Tourist Safety',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF172B35),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    if (!isCompact)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 2),
+                        child: Text(
+                          'Tourist Dashboard',
+                          style: TextStyle(
+                            color: Color(0xFF73818A),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+
+              if (isMobile) ...[
+                const SizedBox(width: 8),
+                Tooltip(
+                  message: 'Profile',
+                  child: IconButton(
+                    onPressed: onProfile,
+                    visualDensity: VisualDensity.compact,
+                    style: IconButton.styleFrom(
+                      backgroundColor: const Color(0xFFF1F7F6),
+                      foregroundColor: const Color(0xFF0F766E),
+                      minimumSize: const Size(42, 42),
+                    ),
+                    icon: const Icon(Icons.person_outline_rounded, size: 21),
+                  ),
+                ),
+              ] else ...[
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: onProfile,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      child: Row(
+                        children: [
+                          const CircleAvatar(
+                            radius: 17,
+                            backgroundColor: Color(0xFFE6F4F1),
+                            child: Icon(
+                              Icons.person_outline_rounded,
+                              size: 19,
+                              color: Color(0xFF0F766E),
+                            ),
+                          ),
+                          const SizedBox(width: 9),
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 180),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Color(0xFF263943),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Text(
+                                  email,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Color(0xFF73818A),
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+
+              const SizedBox(width: 6),
+              Tooltip(
+                message: 'Log out',
+                child: IconButton(
+                  onPressed: onLogout,
+                  visualDensity: VisualDensity.compact,
+                  style: IconButton.styleFrom(
+                    backgroundColor: const Color(0xFFFFF3F1),
+                    foregroundColor: const Color(0xFFB5473C),
+                    minimumSize: const Size(42, 42),
+                  ),
+                  icon: const Icon(Icons.logout_rounded, size: 19),
                 ),
               ),
             ],
           ),
-
-          const Spacer(),
-
-          if (!isMobile) ...[
-            // ONLINE STATUS
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(10),
-                onTap: onProfile,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 13,
-                    vertical: 9,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: const Color(0xFFE5E7EB),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.person_outline_rounded,
-                        size: 18,
-                        color: Color(0xFF64748B),
-                      ),
-                      const SizedBox(width: 8),
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(
-                          maxWidth: 260,
-                        ),
-                        child: Text(
-                          name,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xFF334155),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      const Icon(
-                        Icons.chevron_right_rounded,
-                        size: 17,
-                        color: Color(0xFF94A3B8),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(width: 18),
-
-            // USER EMAIL
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 13,
-                vertical: 9,
-              ),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: const Color(0xFFE5E7EB),
-                ),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.person_outline_rounded,
-                    size: 18,
-                    color: Color(0xFF64748B),
-                  ),
-                 const SizedBox(width: 8),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      maxWidth: 260,
-                    ),
-                    child: Text(
-                      email,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFF334155),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(width: 10),
-          ],
-
-          // LOGOUT
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(10),
-              onTap: onLogout,
-              child: Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFEF2F2),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: const Color(0xFFFEE2E2),
-                  ),
-                ),
-                child: const Icon(
-                  Icons.logout_rounded,
-                  color: Color(0xFFDC2626),
-                  size: 19,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

@@ -5,7 +5,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
-enum LocationAvailability { active, disabled, permissionDenied, unavailable }
+enum LocationAvailability {
+  active,
+  disabled,
+  permissionDenied,
+  permissionDeniedForever,
+  unavailable,
+}
 
 class LocationService {
   StreamSubscription<Position>? _positionStream;
@@ -33,8 +39,10 @@ class LocationService {
       if (requestPermission && permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
+      if (permission == LocationPermission.deniedForever) {
+        return LocationAvailability.permissionDeniedForever;
+      }
+      if (permission == LocationPermission.denied) {
         return LocationAvailability.permissionDenied;
       }
       return LocationAvailability.active;
@@ -140,6 +148,10 @@ class LocationService {
       return null;
     }
   }
+
+  Future<bool> openLocationSettings() => Geolocator.openLocationSettings();
+
+  Future<bool> openAppSettings() => Geolocator.openAppSettings();
 
   Future<void> stopTracking() async {
     _isTracking = false;
