@@ -12,6 +12,7 @@ import '../widgets/live_safety_map.dart';
 import '../widgets/quick_actions.dart';
 import '../widgets/stats_section.dart';
 import '../widgets/tourist_top_bar.dart';
+import '../widgets/tourist_safety_status.dart';
 import '../widgets/voice_sos_confirmation_dialog.dart';
 import '../widgets/welcome_card.dart';
 import 'sos_countdown_screen.dart';
@@ -366,6 +367,10 @@ class _TouristDashboardState extends State<TouristDashboard>
                                 );
                               },
                             ),
+
+                            const SizedBox(height: 14),
+
+                            const TouristSafetyStatus(),
 
                             const SizedBox(height: 14),
 
