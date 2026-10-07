@@ -60,6 +60,8 @@ class SafeZoneStatusService {
   StreamController<TouristSafetySnapshot>? _statusController;
   TouristSafetySnapshot _snapshot = const TouristSafetySnapshot();
   Future<void> Function()? _retryHandler;
+  Future<void> Function(bool enabled)? _trackingHandler;
+  bool _locationTrackingEnabled = true;
 
   Stream<TouristSafetySnapshot> get statusStream {
     _statusController ??= StreamController<TouristSafetySnapshot>.broadcast();
@@ -67,6 +69,11 @@ class SafeZoneStatusService {
   }
 
   TouristSafetySnapshot get snapshot => _snapshot;
+  bool get locationTrackingEnabled => _locationTrackingEnabled;
+  set locationTrackingEnabled(bool enabled) {
+    _locationTrackingEnabled = enabled;
+    _publish(_snapshot);
+  }
 
   void updateGpsStatus(TouristGpsStatus status) {
     _publish(
@@ -149,10 +156,26 @@ class SafeZoneStatusService {
     _retryHandler = handler;
   }
 
+  void registerTrackingHandler(Future<void> Function(bool enabled)? handler) {
+    _trackingHandler = handler;
+  }
+
+  Future<void> setLocationTrackingEnabled(bool enabled) async {
+    locationTrackingEnabled = enabled;
+    final handler = _trackingHandler;
+    if (handler == null) {
+      if (!enabled) updateGpsStatus(TouristGpsStatus.unavailable);
+      return;
+    }
+    await handler(enabled);
+  }
+
   Future<void> retryGps() async {
     final handler = _retryHandler;
     if (handler == null) {
-      throw StateError('GPS retry is not available while monitoring is stopped.');
+      throw StateError(
+        'GPS retry is not available while monitoring is stopped.',
+      );
     }
     await handler();
   }
@@ -188,6 +211,7 @@ class SafeZoneStatusService {
     }
     _safeZoneController = null;
     _retryHandler = null;
+    _trackingHandler = null;
     if (_statusController != null && !_statusController!.isClosed) {
       _statusController!.close();
     }

@@ -6,12 +6,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
-class NotificationService {
-  final FirebaseFirestore _firestore =
-      FirebaseFirestore.instance;
+import '../models/tourist_settings_model.dart';
+import 'tourist_settings_service.dart';
 
-  final FirebaseAuth _auth =
-      FirebaseAuth.instance;
+class NotificationService {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   Stream<QuerySnapshot<Map<String, dynamic>>> getNotifications() {
     final user = _auth.currentUser;
@@ -27,10 +28,7 @@ class NotificationService {
   }
 
   Future<void> markAsRead(String notificationId) async {
-    await _firestore
-        .collection('notifications')
-        .doc(notificationId)
-        .update({
+    await _firestore.collection('notifications').doc(notificationId).update({
       'isRead': true,
     });
   }
@@ -38,15 +36,15 @@ class NotificationService {
   Future<void> createSosConfirmationNotification({
     required String sosId,
     required String touristId,
-  }) {
-    return _createSosConfirmationNotificationOnce(
+  }) async {
+    await _createSosConfirmationNotificationOnce(
       sosId: sosId,
       touristId: touristId,
     );
   }
 
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>
-      listenForSosStatusChanges(String touristId) {
+  listenForSosStatusChanges(String touristId) {
     final previousStatuses = <String, String>{};
 
     return _firestore
@@ -54,51 +52,50 @@ class NotificationService {
         .where('touristId', isEqualTo: touristId)
         .snapshots()
         .listen(
-      (snapshot) {
-        for (final change in snapshot.docChanges) {
-          final sos = change.doc.data();
-          if (sos == null || sos['touristId'] != touristId) continue;
+          (snapshot) {
+            for (final change in snapshot.docChanges) {
+              final sos = change.doc.data();
+              if (sos == null || sos['touristId'] != touristId) continue;
 
-          final status = sos['status']?.toString() ?? '';
-          final previousStatus = previousStatuses[change.doc.id];
-          previousStatuses[change.doc.id] = status;
+              final status = sos['status']?.toString() ?? '';
+              final previousStatus = previousStatuses[change.doc.id];
+              previousStatuses[change.doc.id] = status;
 
-          if (change.type == DocumentChangeType.added ||
-              previousStatus == null) {
-            continue;
-          }
+              if (change.type == DocumentChangeType.added ||
+                  previousStatus == null) {
+                continue;
+              }
 
-          if (previousStatus == 'active' && status == 'acknowledged') {
-            unawaited(
-              _createSosNotificationOnce(
-                sosId: change.doc.id,
-                touristId: touristId,
-                type: 'sos_acknowledged',
-                title: 'SOS Acknowledged',
-                message:
-                    'Your SOS has been acknowledged. Help is being coordinated.',
-              ),
-            );
-          } else if (status == 'resolved' &&
-              (previousStatus == 'acknowledged' ||
-                  previousStatus == 'active')) {
-            unawaited(
-              _createSosNotificationOnce(
-                sosId: change.doc.id,
-                touristId: touristId,
-                type: 'sos_resolved',
-                title: 'SOS Resolved',
-                message: 'Your SOS incident has been resolved.',
-              ),
-            );
-          }
-        }
-      },
-      onError: (Object error, StackTrace stackTrace) {
-        debugPrint('SOS status listener failed: $error');
-        debugPrint('SOS status listener stack trace: $stackTrace');
-      },
-    );
+              if (previousStatus == 'active' && status == 'acknowledged') {
+                unawaited(
+                  _createSosNotificationOnce(
+                    sosId: change.doc.id,
+                    touristId: touristId,
+                    type: 'sos_acknowledged',
+                    title: 'SOS Acknowledged',
+                    message: 'Your SOS has been acknowledged. Help is being coordinated.',
+                  ),
+                );
+              } else if (status == 'resolved' &&
+                  (previousStatus == 'acknowledged' ||
+                      previousStatus == 'active')) {
+                unawaited(
+                  _createSosNotificationOnce(
+                    sosId: change.doc.id,
+                    touristId: touristId,
+                    type: 'sos_resolved',
+                    title: 'SOS Resolved',
+                    message: 'Your SOS incident has been resolved.',
+                  ),
+                );
+              }
+            }
+          },
+          onError: (Object error, StackTrace stackTrace) {
+            debugPrint('SOS status listener failed: $error');
+            debugPrint('SOS status listener stack trace: $stackTrace');
+          },
+        );
   }
 
   Future<void> _createSosConfirmationNotificationOnce({
@@ -116,6 +113,11 @@ class NotificationService {
     );
 
     try {
+      if (!await TouristSettingsService.shared.isNotificationEnabled(
+        TouristNotificationCategory.sos,
+      )) {
+        return;
+      }
       if (user == null || user.uid != touristId) {
         throw StateError('Authenticated user does not match the SOS tourist.');
       }
@@ -216,6 +218,11 @@ class NotificationService {
     );
 
     try {
+      if (!await TouristSettingsService.shared.isNotificationEnabled(
+        TouristNotificationCategory.sos,
+      )) {
+        return;
+      }
       final user = _auth.currentUser;
       if (user == null || user.uid != touristId) {
         throw StateError('Authenticated user does not match the SOS tourist.');
@@ -259,10 +266,7 @@ class NotificationService {
                 },
               },
               'updateTransforms': [
-                {
-                  'fieldPath': 'createdAt',
-                  'setToServerValue': 'REQUEST_TIME',
-                },
+                {'fieldPath': 'createdAt', 'setToServerValue': 'REQUEST_TIME'},
               ],
               'currentDocument': {'exists': false},
             },
@@ -308,8 +312,7 @@ class NotificationService {
       final status = error?['status']?.toString();
       final message = error?['message']?.toString().toLowerCase() ?? '';
 
-      return status == 'ALREADY_EXISTS' ||
-          message.contains('already exists');
+      return status == 'ALREADY_EXISTS' || message.contains('already exists');
     } on FormatException {
       return false;
     } on TypeError {

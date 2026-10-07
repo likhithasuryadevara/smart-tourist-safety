@@ -9,6 +9,7 @@ import '../services/safe_zone_status_service.dart';
 
 import '../services/location_service.dart';
 import '../services/safe_zone_service.dart';
+import '../services/tourist_settings_service.dart';
 
 class LiveSafetyMap extends StatefulWidget {
   final VoidCallback onFullscreen;
@@ -45,6 +46,7 @@ class _LiveSafetyMapState extends State<LiveSafetyMap>
   bool _isStartingLocationTracking = false;
   bool _isAppResumed = true;
   bool _hasReceivedLocation = false;
+  bool _trackingEnabled = true;
   double _distanceFromSafeZone = 0;
   bool _hasCheckedSafeZone = false;
   bool _wasInsideSafeZone = false;
@@ -56,11 +58,49 @@ class _LiveSafetyMapState extends State<LiveSafetyMap>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _statusService.registerRetryHandler(_retryLocationTracking);
+    _statusService.registerTrackingHandler(_setTrackingEnabled);
     _listenForLocationServiceChanges();
     _loadSafeZone();
     _loadDangerZones();
     _startZoneRefreshTimers();
-    _startLocationTracking();
+    _initializeLocationTracking();
+  }
+
+  Future<void> _initializeLocationTracking() async {
+    try {
+      final settings = await TouristSettingsService.shared.load();
+      if (!mounted) return;
+      _trackingEnabled = settings.effectiveLocationTracking;
+      _statusService.locationTrackingEnabled = _trackingEnabled;
+      if (!_trackingEnabled) {
+        _statusService.updateGpsStatus(TouristGpsStatus.unavailable);
+        _statusService.updateStatus(false);
+        return;
+      }
+    } catch (error, stackTrace) {
+      debugPrint(
+        'LiveSafetyMap: settings unavailable, using safe defaults: $error',
+      );
+      debugPrint('LiveSafetyMap: settings load stack trace: $stackTrace');
+    }
+    await _startLocationTracking();
+  }
+
+  Future<void> _setTrackingEnabled(bool enabled) async {
+    _trackingEnabled = enabled;
+    _statusService.locationTrackingEnabled = enabled;
+    if (!enabled) {
+      _gpsRetryTimer?.cancel();
+      _locationFixTimer?.cancel();
+      await _locationService.stopTracking();
+      if (!mounted) return;
+      _statusService.updateGpsStatus(TouristGpsStatus.unavailable);
+      _statusService.updateStatus(false);
+      return;
+    }
+
+    _gpsRetryPolicy.reset();
+    if (_isAppResumed) await _startLocationTracking();
   }
 
   @override
@@ -69,7 +109,7 @@ class _LiveSafetyMapState extends State<LiveSafetyMap>
     if (_isAppResumed) {
       _startZoneRefreshTimers();
       _listenForLocationServiceChanges();
-      unawaited(_startLocationTracking());
+      if (_trackingEnabled) unawaited(_startLocationTracking());
       return;
     }
 
@@ -117,7 +157,7 @@ class _LiveSafetyMapState extends State<LiveSafetyMap>
             _statusService.updateGpsStatus(TouristGpsStatus.disabled);
             _statusService.updateStatus(false);
             unawaited(_locationService.stopTracking());
-          } else if (_isAppResumed) {
+          } else if (_isAppResumed && _trackingEnabled) {
             _gpsRetryPolicy.reset();
             unawaited(_startLocationTracking());
           }
@@ -160,6 +200,7 @@ class _LiveSafetyMapState extends State<LiveSafetyMap>
       return;
     }
     if (availability == LocationAvailability.active &&
+        _trackingEnabled &&
         !_locationService.isTracking) {
       _gpsRetryTimer?.cancel();
       unawaited(_startLocationTracking());
@@ -196,7 +237,12 @@ class _LiveSafetyMapState extends State<LiveSafetyMap>
   }
 
   Future<void> _startLocationTracking() async {
-    if (!mounted || !_isAppResumed || _isStartingLocationTracking) return;
+    if (!mounted ||
+        !_isAppResumed ||
+        !_trackingEnabled ||
+        _isStartingLocationTracking) {
+      return;
+    }
     if (_locationService.isTracking) return;
     _isStartingLocationTracking = true;
     _hasReceivedLocation = false;
@@ -231,7 +277,7 @@ class _LiveSafetyMapState extends State<LiveSafetyMap>
   }
 
   Future<void> _retryLocationTracking() async {
-    if (!mounted || !_isAppResumed) return;
+    if (!mounted || !_isAppResumed || !_trackingEnabled) return;
     _gpsRetryTimer?.cancel();
     _locationFixTimer?.cancel();
     _gpsRetryPolicy.reset();
@@ -396,6 +442,7 @@ class _LiveSafetyMapState extends State<LiveSafetyMap>
     _gpsStatusPollTimer?.cancel();
     unawaited(_serviceStatusSubscription?.cancel());
     _statusService.registerRetryHandler(null);
+    _statusService.registerTrackingHandler(null);
     unawaited(_locationService.stopTracking());
     super.dispose();
   }

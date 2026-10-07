@@ -165,7 +165,14 @@ class _TouristSafetyStatusState extends State<TouristSafetyStatus> {
                   ),
                 ),
               ],
-              if (status.gpsStatus != TouristGpsStatus.active) ...[
+              if (status.gpsStatus != TouristGpsStatus.active &&
+                  !statusService.locationTrackingEnabled) ...[
+                const SizedBox(height: 12),
+                const Text(
+                  'Location tracking is OFF in Settings.',
+                  style: TextStyle(color: Color(0xFF64748B)),
+                ),
+              ] else if (status.gpsStatus != TouristGpsStatus.active) ...[
                 const SizedBox(height: 12),
                 if (status.gpsStatus == TouristGpsStatus.unavailable)
                   const Text(

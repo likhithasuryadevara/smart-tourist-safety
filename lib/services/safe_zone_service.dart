@@ -3,6 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../models/tourist_settings_model.dart';
+import 'tourist_settings_service.dart';
+
 class SafeZone {
   final double latitude;
   final double longitude;
@@ -147,6 +150,11 @@ class SafeZoneService {
     debugPrint('🔄 Safe Zone notification creation started.');
 
     try {
+      if (!await TouristSettingsService.shared.isNotificationEnabled(
+        TouristNotificationCategory.safety,
+      )) {
+        return;
+      }
       final user = FirebaseAuth.instance.currentUser;
 
       if (user == null) {
@@ -157,9 +165,7 @@ class SafeZoneService {
         return;
       }
 
-      await FirebaseFirestore.instance
-          .collection('notifications')
-          .add({
+      await FirebaseFirestore.instance.collection('notifications').add({
         'touristId': user.uid,
         'type': 'safe_zone',
         'title': 'Safe Zone',
@@ -178,6 +184,11 @@ class SafeZoneService {
     debugPrint('🔄 Zone Exit notification creation started.');
 
     try {
+      if (!await TouristSettingsService.shared.isNotificationEnabled(
+        TouristNotificationCategory.safety,
+      )) {
+        return;
+      }
       final user = FirebaseAuth.instance.currentUser;
 
       if (user == null) {
@@ -188,9 +199,7 @@ class SafeZoneService {
         return;
       }
 
-      await FirebaseFirestore.instance
-          .collection('notifications')
-          .add({
+      await FirebaseFirestore.instance.collection('notifications').add({
         'touristId': user.uid,
         'type': 'zone_exit',
         'title': 'Zone Exit',
@@ -209,6 +218,11 @@ class SafeZoneService {
     debugPrint('🔄 Danger Zone notification creation started.');
 
     try {
+      if (!await TouristSettingsService.shared.isNotificationEnabled(
+        TouristNotificationCategory.safety,
+      )) {
+        return;
+      }
       final user = FirebaseAuth.instance.currentUser;
       debugPrint('Danger Zone notification Auth UID: ${user?.uid}.');
 
@@ -224,13 +238,13 @@ class SafeZoneService {
       final notification = await FirebaseFirestore.instance
           .collection('notifications')
           .add({
-        'touristId': user.uid,
-        'type': 'danger_zone',
-        'title': 'Danger Zone',
-        'message': 'You have entered a danger zone.',
-        'isRead': false,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+            'touristId': user.uid,
+            'type': 'danger_zone',
+            'title': 'Danger Zone',
+            'message': 'You have entered a danger zone.',
+            'isRead': false,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
 
       debugPrint(
         '✅ Danger Zone notification created successfully: '

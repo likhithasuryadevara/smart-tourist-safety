@@ -19,6 +19,7 @@ import '../widgets/welcome_card.dart';
 import 'sos_countdown_screen.dart';
 import 'sos_history_screen.dart';
 import 'notifications_screen.dart';
+import 'tourist_settings_screen.dart';
 import 'tourist_safety_history_screen.dart';
 
 class TouristDashboard extends StatefulWidget {
@@ -210,12 +211,10 @@ class _TouristDashboardState extends State<TouristDashboard>
         _voiceRestartTimer?.cancel();
         setState(() {
           _voiceSosListening = false;
-          _voiceSosMessage =
-              'Voice SOS: Confirmation cancelled; waiting for recognition to stop...';
+          _voiceSosMessage = 'Voice SOS: Confirmation cancelled; waiting for recognition to stop...';
         });
 
-        final sessionStopped =
-            await _voiceSosService.waitForSessionToStop();
+        final sessionStopped = await _voiceSosService.waitForSessionToStop();
         if (mounted && _appIsResumed) {
           if (sessionStopped) {
             setState(() {
@@ -225,8 +224,7 @@ class _TouristDashboardState extends State<TouristDashboard>
             await _startVoiceSosMonitoring();
           } else {
             setState(() {
-              _voiceSosMessage =
-                  'Voice SOS: Recognition session still stopping; retrying safely.';
+              _voiceSosMessage = 'Voice SOS: Recognition session still stopping; retrying safely.';
             });
             _scheduleVoiceSosMonitoring(delay: const Duration(seconds: 4));
           }
@@ -469,6 +467,33 @@ class _TouristDashboardState extends State<TouristDashboard>
                                   'SOS History',
                                   style: TextStyle(
                                     color: Colors.red,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 12),
+
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute<void>(
+                                      builder: (context) =>
+                                          const TouristSettingsScreen(),
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(
+                                  Icons.settings_outlined,
+                                  color: Colors.teal,
+                                ),
+                                label: const Text(
+                                  'Settings',
+                                  style: TextStyle(
+                                    color: Colors.teal,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
