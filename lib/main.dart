@@ -34,6 +34,7 @@ class MyApp extends StatelessWidget {
       home: const LoginScreen(),
 
       routes: {
+        '/login': (context) => const LoginScreen(),
         '/tourist-profile': (context) => const TouristProfile(),
       },
     );
