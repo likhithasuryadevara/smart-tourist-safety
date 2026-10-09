@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:smart_tourist_safety/services/location_service.dart';
 import 'package:smart_tourist_safety/services/safe_zone_service.dart';
 import 'package:smart_tourist_safety/services/safe_zone_status_service.dart';
 import 'package:smart_tourist_safety/widgets/tourist_safety_status.dart';
@@ -37,6 +41,64 @@ void main() {
   });
 
   group('Tourist safety status', () {
+    test(
+      'location permission states request once and remain distinguishable',
+      () async {
+        final permissionGateway = _FakeLocationPermissionGateway();
+        final locationService = LocationService(
+          permissionGateway: permissionGateway,
+        );
+
+        permissionGateway.permission = LocationPermission.denied;
+        permissionGateway.requestResult = LocationPermission.denied;
+        expect(
+          await locationService.getAvailability(requestPermission: true),
+          LocationAvailability.permissionDenied,
+        );
+        expect(permissionGateway.requestCount, 1);
+
+        permissionGateway.permission = LocationPermission.deniedForever;
+        expect(
+          await locationService.getAvailability(requestPermission: true),
+          LocationAvailability.permissionDeniedForever,
+        );
+        expect(permissionGateway.requestCount, 1);
+
+        permissionGateway.permission = LocationPermission.whileInUse;
+        expect(
+          await locationService.getAvailability(),
+          LocationAvailability.active,
+        );
+        expect(permissionGateway.requestCount, 1);
+
+        permissionGateway.permission = LocationPermission.denied;
+        permissionGateway.requestResult = LocationPermission.whileInUse;
+        expect(
+          await locationService.getAvailability(requestPermission: true),
+          LocationAvailability.active,
+        );
+        expect(permissionGateway.requestCount, 2);
+      },
+    );
+
+    test(
+      'disabled location services do not request location permission',
+      () async {
+        final permissionGateway = _FakeLocationPermissionGateway()
+          ..serviceEnabled = false;
+        final locationService = LocationService(
+          permissionGateway: permissionGateway,
+        );
+
+        expect(
+          await locationService.getAvailability(requestPermission: true),
+          LocationAvailability.disabled,
+        );
+        expect(permissionGateway.checkCount, 0);
+        expect(permissionGateway.requestCount, 0);
+      },
+    );
+
     test('reports GPS active and permission denied accurately', () {
       statusService.updateGpsStatus(TouristGpsStatus.active);
       expect(statusService.snapshot.gpsStatus, TouristGpsStatus.active);
@@ -137,11 +199,18 @@ void main() {
 
     test('RETRY GPS invokes the active monitor retry handler', () async {
       var attempts = 0;
+      final completion = Completer<void>();
       statusService.registerRetryHandler(() async {
         attempts++;
+        await completion.future;
       });
 
-      await statusService.retryGps();
+      final firstRetry = statusService.retryGps();
+      final secondRetry = statusService.retryGps();
+      expect(identical(firstRetry, secondRetry), isTrue);
+      expect(attempts, 1);
+      completion.complete();
+      await Future.wait([firstRetry, secondRetry]);
 
       expect(attempts, 1);
       statusService.registerRetryHandler(null);
@@ -189,4 +258,28 @@ void main() {
       expect(find.text('DANGER'), findsOneWidget);
     });
   });
+}
+
+class _FakeLocationPermissionGateway implements LocationPermissionGateway {
+  bool serviceEnabled = true;
+  LocationPermission permission = LocationPermission.denied;
+  LocationPermission requestResult = LocationPermission.denied;
+  int checkCount = 0;
+  int requestCount = 0;
+
+  @override
+  Future<LocationPermission> checkPermission() async {
+    checkCount++;
+    return permission;
+  }
+
+  @override
+  Future<bool> isLocationServiceEnabled() async => serviceEnabled;
+
+  @override
+  Future<LocationPermission> requestPermission() async {
+    requestCount++;
+    permission = requestResult;
+    return requestResult;
+  }
 }

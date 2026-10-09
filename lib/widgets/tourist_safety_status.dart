@@ -252,7 +252,7 @@ class _TouristSafetyStatusState extends State<TouristSafetyStatus> {
                   !statusService.locationTrackingEnabled) ...[
                 const SizedBox(height: 12),
                 _InlineNotice(
-                  message: 'Location tracking is OFF in Settings.',
+                  message: 'Location tracking or sharing is OFF in Settings.',
                   icon: Icons.info_outline_rounded,
                   color: const Color(0xFF697980),
                 ),

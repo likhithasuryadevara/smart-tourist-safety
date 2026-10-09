@@ -13,7 +13,35 @@ enum LocationAvailability {
   unavailable,
 }
 
+abstract interface class LocationPermissionGateway {
+  Future<bool> isLocationServiceEnabled();
+
+  Future<LocationPermission> checkPermission();
+
+  Future<LocationPermission> requestPermission();
+}
+
+class _GeolocatorPermissionGateway implements LocationPermissionGateway {
+  const _GeolocatorPermissionGateway();
+
+  @override
+  Future<bool> isLocationServiceEnabled() =>
+      Geolocator.isLocationServiceEnabled();
+
+  @override
+  Future<LocationPermission> checkPermission() => Geolocator.checkPermission();
+
+  @override
+  Future<LocationPermission> requestPermission() =>
+      Geolocator.requestPermission();
+}
+
 class LocationService {
+  LocationService({LocationPermissionGateway? permissionGateway})
+    : _permissionGateway =
+          permissionGateway ?? const _GeolocatorPermissionGateway();
+
+  final LocationPermissionGateway _permissionGateway;
   StreamSubscription<Position>? _positionStream;
   bool _isTracking = false;
   bool _isStarting = false;
@@ -32,19 +60,27 @@ class LocationService {
   }) async {
     if (_disposed) return LocationAvailability.unavailable;
     try {
-      if (!await Geolocator.isLocationServiceEnabled()) {
+      final serviceEnabled = await _permissionGateway
+          .isLocationServiceEnabled();
+      debugPrint('LocationService: location services enabled: $serviceEnabled');
+      if (!serviceEnabled) {
         return LocationAvailability.disabled;
       }
-      var permission = await Geolocator.checkPermission();
+      var permission = await _permissionGateway.checkPermission();
+      debugPrint('LocationService: permission before request: $permission');
       if (requestPermission && permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
+        permission = await _permissionGateway.requestPermission();
+        debugPrint('LocationService: permission after request: $permission');
       }
       if (permission == LocationPermission.deniedForever) {
+        debugPrint('LocationService: location permission denied forever');
         return LocationAvailability.permissionDeniedForever;
       }
       if (permission == LocationPermission.denied) {
+        debugPrint('LocationService: location permission denied');
         return LocationAvailability.permissionDenied;
       }
+      debugPrint('LocationService: location permission granted');
       return LocationAvailability.active;
     } catch (error, stackTrace) {
       debugPrint('LocationService: availability check failed: $error');

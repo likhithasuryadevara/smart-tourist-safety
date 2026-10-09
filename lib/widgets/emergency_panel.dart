@@ -79,12 +79,26 @@ class EmergencyPanel extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    voiceStatus,
-                    style: const TextStyle(
-                      color: Color(0xFF52636B),
-                      fontSize: 12,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'VOICE SOS',
+                        style: TextStyle(
+                          color: Color(0xFF263943),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        voiceStatus,
+                        style: const TextStyle(
+                          color: Color(0xFF52636B),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -168,57 +182,86 @@ class _EmergencyButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
+    final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(12),
-      child: Ink(
-        decoration: BoxDecoration(
-          color: primary ? color : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: primary ? color : const Color(0xFFE4EBEA)),
-          boxShadow: primary
-              ? [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.16),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ]
-              : null,
-        ),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 50),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 13),
-            child: Row(
-              children: [
-                Icon(icon, color: primary ? Colors.white : color, size: 21),
-                const SizedBox(width: 11),
-                Expanded(
-                  child: Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: primary ? Colors.white : const Color(0xFF263943),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: primary
-                      ? Colors.white.withValues(alpha: 0.9)
-                      : const Color(0xFF8A989D),
-                  size: 22,
-                ),
-              ],
+      side: BorderSide(
+        color: primary ? color : const Color(0xFFE4EBEA),
+      ),
+    );
+    final buttonStyle = (primary
+            ? FilledButton.styleFrom(
+                backgroundColor: color,
+                foregroundColor: Colors.white,
+              )
+            : OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF263943),
+                side: const BorderSide(color: Color(0xFFE4EBEA)),
+              ))
+        .copyWith(
+          minimumSize: const WidgetStatePropertyAll(Size.fromHeight(50)),
+          padding: const WidgetStatePropertyAll(
+            EdgeInsets.symmetric(horizontal: 13),
+          ),
+          shape: WidgetStatePropertyAll(shape),
+          alignment: Alignment.centerLeft,
+        );
+
+    final button = primary
+        ? FilledButton(
+            onPressed: onTap,
+            style: buttonStyle,
+            child: _EmergencyButtonContent(
+              icon: icon,
+              title: title,
+              color: Colors.white,
             ),
+          )
+        : OutlinedButton(
+            onPressed: onTap,
+            style: buttonStyle,
+            child: _EmergencyButtonContent(
+              icon: icon,
+              title: title,
+              color: color,
+            ),
+          );
+
+    return SizedBox(width: double.infinity, child: button);
+  }
+}
+
+class _EmergencyButtonContent extends StatelessWidget {
+  const _EmergencyButtonContent({
+    required this.icon,
+    required this.title,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String title;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 21),
+        const SizedBox(width: 11),
+        Expanded(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
           ),
         ),
-      ),
+        const SizedBox(width: 8),
+        Icon(
+          Icons.chevron_right_rounded,
+          color: color.withValues(alpha: 0.9),
+          size: 22,
+        ),
+      ],
     );
   }
 }

@@ -12,7 +12,6 @@ import '../widgets/dashboard_navigation_card.dart';
 import '../widgets/emergency_panel.dart';
 import '../widgets/live_safety_map.dart';
 import '../widgets/quick_actions.dart';
-import '../widgets/stats_section.dart';
 import '../widgets/tourist_top_bar.dart';
 import '../widgets/tourist_safety_status.dart';
 import '../widgets/tourist_device_status_section.dart';
@@ -421,6 +420,10 @@ class _TouristDashboardState extends State<TouristDashboard>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            WelcomeCard(name: name),
+
+                            const SizedBox(height: 14),
+
                             DangerBanner(
                               onTap: () {
                                 _showMessage(
@@ -436,12 +439,6 @@ class _TouristDashboardState extends State<TouristDashboard>
                             const SizedBox(height: 14),
 
                             const TouristDeviceStatusSection(),
-
-                            const SizedBox(height: 14),
-
-                            WelcomeCard(name: name),
-                            const SizedBox(height: 14),
-                            StatsSection(desktop: desktop),
 
                             const SizedBox(height: 14),
 
