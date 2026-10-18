@@ -15,10 +15,7 @@ class NotificationModel {
     required this.isRead,
   });
 
-  factory NotificationModel.fromMap(
-    String id,
-    Map<String, dynamic> data,
-  ) {
+  factory NotificationModel.fromMap(String id, Map<String, dynamic> data) {
     return NotificationModel(
       id: id,
       type: data['type']?.toString() ?? 'general',

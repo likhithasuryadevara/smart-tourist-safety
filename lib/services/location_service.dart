@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
+import '../utils/geographic_validation.dart';
+
 enum LocationAvailability {
   active,
   disabled,
@@ -84,7 +86,9 @@ class LocationService {
       return LocationAvailability.active;
     } catch (error, stackTrace) {
       debugPrint('LocationService: availability check failed: $error');
-      debugPrint('LocationService: availability check stack trace: $stackTrace');
+      debugPrint(
+        'LocationService: availability check stack trace: $stackTrace',
+      );
       return LocationAvailability.unavailable;
     }
   }
@@ -106,31 +110,42 @@ class LocationService {
       }
       if (_disposed) return LocationAvailability.unavailable;
 
-      _positionStream = Geolocator.getPositionStream(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          distanceFilter: 5,
-        ),
-      ).listen(
-        (Position position) async {
-          if (_disposed) return;
+      _positionStream =
+          Geolocator.getPositionStream(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.high,
+              distanceFilter: 5,
+            ),
+          ).listen(
+            (Position position) async {
+              if (_disposed) return;
 
-          try {
-            onLocationUpdate(position);
-            await _saveLocationToFirestore(position);
-          } catch (error, stackTrace) {
-            debugPrint('LocationService: location update failed: $error');
-            debugPrint('LocationService: stack trace: $stackTrace');
-          }
-        },
-        onError: (Object error, StackTrace stackTrace) {
-          debugPrint('LocationService: stream error: $error');
-          debugPrint('LocationService: stream stack trace: $stackTrace');
-          _isTracking = false;
-          onStatusChanged(LocationAvailability.unavailable);
-          unawaited(stopTracking());
-        },
-      );
+              if (!isValidCoordinate(position.latitude, position.longitude)) {
+                debugPrint(
+                  'LocationService: rejecting invalid coordinates '
+                  '(${position.latitude}, ${position.longitude}).',
+                );
+                unawaited(stopTracking());
+                onStatusChanged(LocationAvailability.unavailable);
+                return;
+              }
+
+              try {
+                onLocationUpdate(position);
+                await _saveLocationToFirestore(position);
+              } catch (error, stackTrace) {
+                debugPrint('LocationService: location update failed: $error');
+                debugPrint('LocationService: stack trace: $stackTrace');
+              }
+            },
+            onError: (Object error, StackTrace stackTrace) {
+              debugPrint('LocationService: stream error: $error');
+              debugPrint('LocationService: stream stack trace: $stackTrace');
+              _isTracking = false;
+              onStatusChanged(LocationAvailability.unavailable);
+              unawaited(stopTracking());
+            },
+          );
       _isTracking = true;
       onStatusChanged(LocationAvailability.active);
       return LocationAvailability.active;
@@ -153,7 +168,7 @@ class LocationService {
         {
           'latitude': position.latitude,
           'longitude': position.longitude,
-          'locationUpdatedAt': FieldValue.serverTimestamp(),
+          'lastUpdated': FieldValue.serverTimestamp(),
         },
       );
     } catch (error, stackTrace) {

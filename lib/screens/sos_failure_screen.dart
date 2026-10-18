@@ -7,8 +7,7 @@ class SosFailureScreen extends StatelessWidget {
 
   const SosFailureScreen({
     super.key,
-    this.message =
-        'We could not send your SOS request. Please try again.',
+    this.message = 'We could not send your SOS request. Please try again.',
   });
 
   @override
@@ -60,10 +59,7 @@ class SosFailureScreen extends StatelessWidget {
                 Text(
                   message,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    color: Colors.black87,
-                  ),
+                  style: const TextStyle(fontSize: 17, color: Colors.black87),
                 ),
 
                 const SizedBox(height: 35),
@@ -74,9 +70,7 @@ class SosFailureScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Colors.orange.shade200,
-                    ),
+                    border: Border.all(color: Colors.orange.shade200),
                   ),
                   child: const Column(
                     children: [
@@ -89,10 +83,7 @@ class SosFailureScreen extends StatelessWidget {
                       Text(
                         'Please check your GPS and internet connection, then try again.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 15,
-                          color: Colors.black87,
-                        ),
+                        style: TextStyle(fontSize: 15, color: Colors.black87),
                       ),
                     ],
                   ),
@@ -113,9 +104,7 @@ class SosFailureScreen extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.orange,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 16,
-                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     child: const Text(
                       'TRY AGAIN',
@@ -133,19 +122,12 @@ class SosFailureScreen extends StatelessWidget {
                   width: double.infinity,
                   child: OutlinedButton(
                     onPressed: () {
-                      Navigator.of(context).popUntil(
-                        (route) => route.isFirst,
-                      );
+                      Navigator.of(context).popUntil((route) => route.isFirst);
                     },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.orange,
-                      side: const BorderSide(
-                        color: Colors.orange,
-                        width: 2,
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 16,
-                      ),
+                      side: const BorderSide(color: Colors.orange, width: 2),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     child: const Text(
                       'BACK TO DASHBOARD',

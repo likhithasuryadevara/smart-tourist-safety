@@ -1,15 +1,34 @@
 import 'package:flutter/material.dart';
 
+import '../services/safe_zone_service.dart';
+
 class DangerBanner extends StatelessWidget {
   final VoidCallback onTap;
+  final DangerZone? dangerZone;
 
   const DangerBanner({
     super.key,
     required this.onTap,
+    this.dangerZone,
   });
 
   @override
   Widget build(BuildContext context) {
+    final String title;
+    final String message;
+
+    if (dangerZone != null) {
+      title = 'Danger Zone Alert';
+      message = dangerZone!.warningMessage?.isNotEmpty == true
+          ? dangerZone!.warningMessage!
+          : dangerZone!.dangerLevel?.isNotEmpty == true
+              ? 'Danger level: ${dangerZone!.dangerLevel}. Stay away!'
+              : 'You have entered a danger zone. Exercise caution.';
+    } else {
+      title = 'Safety Alert';
+      message = 'Stay aware of your surroundings and remain within designated safe zones.';
+    }
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
@@ -39,25 +58,22 @@ class DangerBanner extends StatelessWidget {
 
             const SizedBox(width: 12),
 
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Safety Alert',
-                    style: TextStyle(
+                    title,
+                    style: const TextStyle(
                       color: Color(0xFF8F352D),
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  SizedBox(height: 3),
+                  const SizedBox(height: 3),
                   Text(
-                    'Stay aware of your surroundings and remain within designated safe zones.',
-                    style: TextStyle(
-                      color: Color(0xFF765E5A),
-                      fontSize: 12,
-                    ),
+                    message,
+                    style: const TextStyle(color: Color(0xFF765E5A), fontSize: 12),
                   ),
                 ],
               ),

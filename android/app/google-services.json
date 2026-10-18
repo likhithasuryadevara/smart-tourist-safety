@@ -1,13 +1,32 @@
 {
   "project_info": {
-    "project_number": "840922301572",
-    "project_id": "smart-tourist-safety-e802e",
-    "storage_bucket": "smart-tourist-safety-e802e.firebasestorage.app"
+    "project_number": "711894981384",
+    "project_id": "smart-tourist-safety-sys-f8297",
+    "storage_bucket": "smart-tourist-safety-sys-f8297.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:840922301572:android:1ac2b551c6cc7c2825eed1",
+        "mobilesdk_app_id": "1:711894981384:android:1cdcf348551f50c6942abd",
+        "android_client_info": {
+          "package_name": "com.example.hello_test"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDoJfag0I7MToHc2ofMr3JUh_v8SJeth_8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:711894981384:android:85cacb92756eb309942abd",
         "android_client_info": {
           "package_name": "com.example.smart_tourist_safety"
         }
@@ -15,7 +34,45 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAcw9QPVwv7ww8qFqF4ZdHEYCnuS3LkQHg"
+          "current_key": "AIzaSyDoJfag0I7MToHc2ofMr3JUh_v8SJeth_8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:711894981384:android:8f40aa31c209fc33942abd",
+        "android_client_info": {
+          "package_name": "com.example.tourist_safety_new"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDoJfag0I7MToHc2ofMr3JUh_v8SJeth_8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:711894981384:android:5ec12861fd562cf3942abd",
+        "android_client_info": {
+          "package_name": "com.example.tourist_safety_system"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDoJfag0I7MToHc2ofMr3JUh_v8SJeth_8"
         }
       ],
       "services": {

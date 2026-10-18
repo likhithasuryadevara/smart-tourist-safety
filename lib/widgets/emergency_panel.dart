@@ -184,27 +184,26 @@ class _EmergencyButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(12),
-      side: BorderSide(
-        color: primary ? color : const Color(0xFFE4EBEA),
-      ),
+      side: BorderSide(color: primary ? color : const Color(0xFFE4EBEA)),
     );
-    final buttonStyle = (primary
-            ? FilledButton.styleFrom(
-                backgroundColor: color,
-                foregroundColor: Colors.white,
-              )
-            : OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF263943),
-                side: const BorderSide(color: Color(0xFFE4EBEA)),
-              ))
-        .copyWith(
-          minimumSize: const WidgetStatePropertyAll(Size.fromHeight(50)),
-          padding: const WidgetStatePropertyAll(
-            EdgeInsets.symmetric(horizontal: 13),
-          ),
-          shape: WidgetStatePropertyAll(shape),
-          alignment: Alignment.centerLeft,
-        );
+    final buttonStyle =
+        (primary
+                ? FilledButton.styleFrom(
+                    backgroundColor: color,
+                    foregroundColor: Colors.white,
+                  )
+                : OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF263943),
+                    side: const BorderSide(color: Color(0xFFE4EBEA)),
+                  ))
+            .copyWith(
+              minimumSize: const WidgetStatePropertyAll(Size.fromHeight(50)),
+              padding: const WidgetStatePropertyAll(
+                EdgeInsets.symmetric(horizontal: 13),
+              ),
+              shape: WidgetStatePropertyAll(shape),
+              alignment: Alignment.centerLeft,
+            );
 
     final button = primary
         ? FilledButton(

@@ -17,9 +17,7 @@ class TouristDeviceStatusModel {
     this.lastCommunication,
   });
 
-  factory TouristDeviceStatusModel.fromUserData(
-    Map<String, dynamic>? data,
-  ) {
+  factory TouristDeviceStatusModel.fromUserData(Map<String, dynamic>? data) {
     if (data == null) return const TouristDeviceStatusModel();
 
     return TouristDeviceStatusModel(
@@ -55,12 +53,12 @@ class TouristDeviceStatusModel {
     final text = _nonEmptyString(value)?.toUpperCase();
     if (text == null) return null;
     return const {
-      'CONNECTED',
-      'ONLINE',
-      'OFFLINE',
-      'DISCONNECTED',
-      'UNKNOWN',
-    }.contains(text)
+          'CONNECTED',
+          'ONLINE',
+          'OFFLINE',
+          'DISCONNECTED',
+          'UNKNOWN',
+        }.contains(text)
         ? text
         : null;
   }

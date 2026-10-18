@@ -1,11 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../admin_dashboard.dart';
 import '../utils/app_error_message.dart';
 import 'register_screen.dart';
-import 'tourist_dashboard.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -80,18 +77,19 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     }
   }
-
-  Future<void> _login() async {
+Future<void> _login() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
+
+    debugPrint('LOGIN: _login called');
 
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // 1. Firebase Authentication
+      // 1. Firebase Authentication only
       final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
@@ -103,149 +101,38 @@ class _LoginScreenState extends State<LoginScreen> {
         throw Exception('Firebase user is null.');
       }
 
-      // 2. Get Firestore profile
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-
-      if (!userDoc.exists) {
-        await FirebaseAuth.instance.signOut();
-
-        if (!mounted) return;
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User profile not found in Firestore.')),
-        );
-
-        return;
-      }
-
-      final data = userDoc.data();
-
-      if (data == null) {
-        await FirebaseAuth.instance.signOut();
-
-        if (!mounted) return;
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User profile data is empty.')),
-        );
-
-        return;
-      }
-
-      // 3. Read role/status
-      final role = data['role'] ?? 'tourist';
-
-      final approvalStatus = data['approvalStatus'] ?? 'pending';
-
-      final accountStatus = data['accountStatus'] ?? 'active';
-
-      // 4. Suspended account
-      if (accountStatus == 'suspended') {
-        await FirebaseAuth.instance.signOut();
-
-        if (!mounted) return;
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Your account has been suspended. Please contact the administrator.',
-            ),
-          ),
-        );
-
-        return;
-      }
-
-      // =====================================================
-      // ADMIN
-      // =====================================================
-
-      if (role == 'admin') {
-        if (!mounted) return;
-
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const AdminDashboard()),
-        );
-
-        return;
-      }
-
-      // =====================================================
-      // TOURIST
-      // =====================================================
-
-      if (role == 'tourist') {
-        // Tourist email must be verified
-        if (!user.emailVerified) {
-          await FirebaseAuth.instance.signOut();
-
-          if (!mounted) return;
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Please verify your email address before logging in.',
-              ),
-            ),
-          );
-
-          return;
-        }
-
-        // Tourist must be approved
-        if (approvalStatus != 'approved') {
-          await FirebaseAuth.instance.signOut();
-
-          if (!mounted) return;
-
-          String message = 'Your account is waiting for admin approval.';
-
-          if (approvalStatus == 'rejected') {
-            message = 'Your account registration was rejected.';
-          }
-
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text(message)));
-
-          return;
-        }
-
-        if (!mounted) return;
-
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const TouristDashboard()),
-        );
-
-        return;
-      }
-
-      // =====================================================
-      // UNKNOWN ROLE
-      // =====================================================
-
-      await FirebaseAuth.instance.signOut();
-
+      debugPrint('LOGIN: Authentication successful - AuthGate will handle routing');
+      // Authentication successful - AuthGate will handle profile validation and routing
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Unauthorized account role. Please contact the administrator.',
-          ),
-        ),
-      );
     } on FirebaseAuthException catch (e, stackTrace) {
+      debugPrint('LOGIN: FirebaseAuthException - code=${e.code}, message=${e.message}');
       AppErrorMessage.log(e, stackTrace, context: 'Signing in');
-      final message = AppErrorMessage.from(e, fallback: 'Login failed.');
+      String message = AppErrorMessage.from(e, fallback: 'Login failed.');
+
+      // Provide specific messages for common auth errors
+      if (e.code == 'wrong-password') {
+        message = 'Incorrect password. Please try again.';
+      } else if (e.code == 'user-not-found') {
+        message = 'No account found with this email.';
+      } else if (e.code == 'user-disabled') {
+        message = 'This account has been disabled. Please contact support.';
+      } else if (e.code == 'invalid-email') {
+        message = 'Please enter a valid email address.';
+      } else if (e.code == 'invalid-credential') {
+        message = 'Invalid email or password.';
+      } else if (e.code == 'too-many-requests') {
+        message = 'Too many attempts. Please try again later.';
+      } else if (e.code == 'network-request-failed') {
+        message = 'Network error. Check your connection and try again.';
+      }
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(message)));
     } catch (error, stackTrace) {
+      debugPrint('LOGIN: Unexpected error - $error');
       AppErrorMessage.log(error, stackTrace, context: 'Signing in');
       if (!mounted) return;
 
@@ -267,7 +154,6 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(

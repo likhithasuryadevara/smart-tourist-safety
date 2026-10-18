@@ -13,7 +13,6 @@ class QuickActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final actions = [
-
       _ActionData(
         title: 'Safe Zone',
         subtitle: 'Check your safety area',
@@ -63,10 +62,7 @@ class _ActionCard extends StatelessWidget {
   final _ActionData data;
   final VoidCallback onTap;
 
-  const _ActionCard({
-    required this.data,
-    required this.onTap,
-  });
+  const _ActionCard({required this.data, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -116,10 +112,7 @@ class _ActionCard extends StatelessWidget {
                 data.subtitle,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Color(0xFF73818A),
-                  fontSize: 11,
-                ),
+                style: const TextStyle(color: Color(0xFF73818A), fontSize: 11),
               ),
             ],
           ),

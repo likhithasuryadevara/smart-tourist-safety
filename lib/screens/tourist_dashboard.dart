@@ -4,7 +4,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../config/build_config.dart';
 import '../services/notification_service.dart';
+import '../services/safe_zone_service.dart';
 import '../services/voice_sos_service.dart';
 import '../utils/app_error_message.dart';
 import '../widgets/danger_banner.dart';
@@ -20,6 +22,7 @@ import '../widgets/welcome_card.dart';
 import 'sos_countdown_screen.dart';
 import 'sos_history_screen.dart';
 import 'notifications_screen.dart';
+import 'tourist_fullscreen_map_screen.dart';
 import 'tourist_settings_screen.dart';
 import 'tourist_safety_history_screen.dart';
 
@@ -38,6 +41,7 @@ class _TouristDashboardState extends State<TouristDashboard>
   final NotificationService _notificationService = NotificationService();
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
   _sosStatusSubscription;
+  StreamSubscription<User?>? _authSubscription;
   Timer? _voiceRestartTimer;
 
   String _name = '';
@@ -51,6 +55,97 @@ class _TouristDashboardState extends State<TouristDashboard>
   bool _voiceResultReceivedInSession = false;
   bool _voiceRecognitionErrorInSession = false;
   bool _appIsResumed = true;
+  DangerZone? _currentDangerZone;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _loadTouristName();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _sosStatusSubscription = _notificationService.listenForSosStatusChanges(
+        user.uid,
+      );
+    }
+    _authSubscription = FirebaseAuth.instance.authStateChanges().listen(
+      (User? user) {
+        debugPrint('DASHBOARD: authStateChanges - user is ${user == null ? 'null' : 'signed-in'}');
+        if (!mounted) return;
+        if (user == null) {
+          _cleanupAndRedirectToLogin();
+        } else {
+          _verifyProfileAndRedirect(user);
+        }
+      },
+      onError: (Object error) {
+        debugPrint('TouristDashboard auth listener error: $error');
+      },
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_startVoiceSosMonitoring());
+    });
+  }
+
+  Future<void> _verifyProfileAndRedirect(User user) async {
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (!mounted) return;
+
+      if (!userDoc.exists) {
+        debugPrint('DASHBOARD: Redirect reason - Profile document does not exist');
+        _cleanupAndRedirectToLogin();
+        return;
+      }
+
+      final data = userDoc.data();
+      if (data == null) {
+        debugPrint('DASHBOARD: Redirect reason - Profile data is null');
+        _cleanupAndRedirectToLogin();
+        return;
+      }
+
+      // DIAGNOSTIC: Log exact redirect conditions
+      final role = data['role'] ?? 'tourist';
+      final accountStatus = data['accountStatus'] ?? 'active';
+      debugPrint(
+        'DASHBOARD: Profile check - exists=${userDoc.exists}, role=${data['role']}, accountStatus=$accountStatus, emailVerified=${user.emailVerified}',
+      );
+
+      // Only allow access if conditions are met:
+      // - role is 'tourist'
+      // - accountStatus is 'active' (not suspended)
+      // - email is verified (configurable via REQUIRE_EMAIL_VERIFICATION)
+      if (role != 'tourist' ||
+          accountStatus == 'suspended' ||
+          (kRequireEmailVerification && !user.emailVerified)) {
+        debugPrint(
+          'DASHBOARD: Redirect reason - role=$role, suspended=$accountStatus, emailVerified=${user.emailVerified}',
+        );
+        _cleanupAndRedirectToLogin();
+      }
+    } catch (e) {
+      debugPrint('DASHBOARD: _verifyProfileAndRedirect error: $e');
+      if (mounted) {
+        _cleanupAndRedirectToLogin();
+      }
+    }
+  }
+
+  void _cleanupAndRedirectToLogin() {
+    debugPrint('DASHBOARD: _cleanupAndRedirectToLogin called');
+    _voiceRestartTimer?.cancel();
+    _sosStatusSubscription?.cancel();
+    _authSubscription?.cancel();
+    unawaited(_voiceSosService.detachScreen());
+    if (mounted) {
+      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+    }
+  }
 
   Future<void> _handleSos() async {
     final result = await Navigator.of(
@@ -172,8 +267,8 @@ class _TouristDashboardState extends State<TouristDashboard>
       }
 
       final existingSos = await FirebaseFirestore.instance
-          .collection('sos')
-          .where('touristId', isEqualTo: user.uid)
+          .collection('sos_alerts')
+          .where('userId', isEqualTo: user.uid)
           .get();
 
       if (!mounted) return;
@@ -238,22 +333,6 @@ class _TouristDashboardState extends State<TouristDashboard>
   }
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _loadTouristName();
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      _sosStatusSubscription = _notificationService.listenForSosStatusChanges(
-        user.uid,
-      );
-    }
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(_startVoiceSosMonitoring());
-    });
-  }
-
-  @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _appIsResumed = state == AppLifecycleState.resumed;
     if (_appIsResumed) {
@@ -277,6 +356,7 @@ class _TouristDashboardState extends State<TouristDashboard>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _sosStatusSubscription?.cancel();
+    _authSubscription?.cancel();
     _voiceRestartTimer?.cancel();
     unawaited(_voiceSosService.detachScreen());
     super.dispose();
@@ -351,10 +431,15 @@ class _TouristDashboardState extends State<TouristDashboard>
       }
       return;
     }
+    // Auth state listener will handle navigation to login
+  }
 
-    if (!mounted) return;
-
-    Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+  void _openFullScreenMap() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const TouristFullScreenMapScreen(),
+      ),
+    );
   }
 
   void _showMessage(String message) {
@@ -430,6 +515,7 @@ class _TouristDashboardState extends State<TouristDashboard>
                                   'Safe Zone navigation will be connected next.',
                                 );
                               },
+                              dangerZone: _currentDangerZone,
                             ),
 
                             const SizedBox(height: 14),
@@ -455,7 +541,7 @@ class _TouristDashboardState extends State<TouristDashboard>
                               },
                             ),
 
-                            const SizedBox(height: 18),
+                            const SizedBox(height: 10),
                             DashboardNavigationCard(
                               icon: Icons.notifications_none_rounded,
                               title: 'Notifications',
@@ -525,10 +611,13 @@ class _TouristDashboardState extends State<TouristDashboard>
                                   Expanded(
                                     flex: 7,
                                     child: LiveSafetyMap(
-                                      onFullscreen: () {
-                                        _showMessage(
-                                          'Full-screen map will be connected next.',
-                                        );
+                                      onFullscreen: _openFullScreenMap,
+                                      onDangerZoneChanged: (zone) {
+                                        if (mounted) {
+                                          setState(() {
+                                            _currentDangerZone = zone;
+                                          });
+                                        }
                                       },
                                     ),
                                   ),
@@ -557,10 +646,13 @@ class _TouristDashboardState extends State<TouristDashboard>
                               Column(
                                 children: [
                                   LiveSafetyMap(
-                                    onFullscreen: () {
-                                      _showMessage(
-                                        'Full-screen map will be connected next.',
-                                      );
+                                    onFullscreen: _openFullScreenMap,
+                                    onDangerZoneChanged: (zone) {
+                                      if (mounted) {
+                                        setState(() {
+                                          _currentDangerZone = zone;
+                                        });
+                                      }
                                     },
                                   ),
 

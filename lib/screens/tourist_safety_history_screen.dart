@@ -27,7 +27,7 @@ class _TouristSafetyHistoryScreenState
 
   String? _touristId;
   Stream<QuerySnapshot<Map<String, dynamic>>>? _sosStream;
-  Stream<QuerySnapshot<Map<String, dynamic>>>? _notificationStream;
+  Stream<QuerySnapshot<Map<String, dynamic>>>? _geoFenceStream;
   late TouristHistoryFilter _selectedFilter;
 
   @override
@@ -43,7 +43,7 @@ class _TouristSafetyHistoryScreenState
     if (touristId == null) return;
 
     _sosStream = _historyService.watchSosHistory(touristId);
-    _notificationStream = _historyService.watchNotificationHistory(touristId);
+    _geoFenceStream = _historyService.watchGeoFenceHistory(touristId);
   }
 
   Future<void> _retry() async {
@@ -78,16 +78,16 @@ class _TouristSafetyHistoryScreenState
           if (!sosSnapshot.hasData) return _loadingState();
 
           return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-            stream: _notificationStream,
-            builder: (context, notificationSnapshot) {
-              if (notificationSnapshot.hasError) {
-                return _errorState(notificationSnapshot.error);
+            stream: _geoFenceStream,
+            builder: (context, geoFenceSnapshot) {
+              if (geoFenceSnapshot.hasError) {
+                return _errorState(geoFenceSnapshot.error);
               }
-              if (!notificationSnapshot.hasData) return _loadingState();
+              if (!geoFenceSnapshot.hasData) return _loadingState();
 
               final history = _historyService.combineHistory(
                 sosDocuments: sosSnapshot.data!.docs,
-                notificationDocuments: notificationSnapshot.data!.docs,
+                geoFenceDocuments: geoFenceSnapshot.data!.docs,
               );
               final filteredHistory = history
                   .where((event) => event.matches(_selectedFilter))

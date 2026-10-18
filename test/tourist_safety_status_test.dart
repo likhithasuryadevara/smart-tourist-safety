@@ -156,6 +156,87 @@ void main() {
     });
 
     test(
+      'classifies multiple enabled safe zones and chooses nearest distance',
+      () {
+        final safeZone1 = SafeZone(
+          id: 'safe-1',
+          name: 'Zone One',
+          latitude: 0,
+          longitude: 0,
+          radius: 500,
+        );
+        final safeZone2 = SafeZone(
+          id: 'safe-2',
+          name: 'Zone Two',
+          latitude: 0.1,
+          longitude: 0,
+          radius: 500,
+        );
+
+        // Tourist is inside zone 2 (at 0.1, 0)
+        statusService.updateLocation(
+          latitude: 0.1,
+          longitude: 0,
+          updatedAt: DateTime.utc(2026, 10, 7, 12),
+          safeZones: [safeZone1, safeZone2],
+          dangerZones: const [],
+          safeZoneService: geofenceService,
+        );
+        expect(statusService.snapshot.zoneStatus, TouristZoneStatus.safe);
+        expect(statusService.snapshot.safetyIndicator, 'SAFE');
+        expect(statusService.snapshot.isInsideSafeZone, isTrue);
+        expect(statusService.snapshot.distanceToSafeZone, 0.0);
+
+        // Tourist is outside both, closer to zone 1 (at 0.01, 0)
+        statusService.updateLocation(
+          latitude: 0.01,
+          longitude: 0,
+          updatedAt: DateTime.utc(2026, 10, 7, 12),
+          safeZones: [safeZone1, safeZone2],
+          dangerZones: const [],
+          safeZoneService: geofenceService,
+        );
+        expect(
+          statusService.snapshot.zoneStatus,
+          TouristZoneStatus.outsideSafeZone,
+        );
+        expect(statusService.snapshot.safetyIndicator, 'DANGER');
+        expect(statusService.snapshot.isInsideSafeZone, isFalse);
+        // Distance is distance to zone 1 (~1.1 km), not zone 2 (~10 km)
+        expect(statusService.snapshot.distanceToSafeZone, lessThan(2000));
+      },
+    );
+
+    test('does not report safety while zone data is unavailable', () {
+      statusService.updateLocation(
+        latitude: 0,
+        longitude: 0,
+        updatedAt: DateTime.utc(2026, 10, 7, 12),
+        safeZone: safeZone,
+        dangerZones: const [],
+        safeZoneService: geofenceService,
+        zoneInformationAvailable: false,
+      );
+
+      expect(statusService.snapshot.zoneStatus, TouristZoneStatus.unknown);
+      expect(statusService.snapshot.safetyIndicator, 'UNKNOWN');
+    });
+
+    test('rejects invalid coordinates rather than producing safety status', () {
+      expect(
+        () => statusService.updateLocation(
+          latitude: 91,
+          longitude: 0,
+          updatedAt: DateTime.utc(2026, 10, 7, 12),
+          safeZone: safeZone,
+          dangerZones: const [],
+          safeZoneService: geofenceService,
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test(
       'retains the real latest coordinates, timestamp, and calculated distance',
       () {
         final updatedAt = DateTime.utc(2026, 10, 7, 12);
@@ -170,7 +251,7 @@ void main() {
 
         expect(statusService.snapshot.latitude, 0.01);
         expect(statusService.snapshot.longitude, 0);
-        expect(statusService.snapshot.locationUpdatedAt, updatedAt);
+        expect(statusService.snapshot.lastUpdated, updatedAt);
         expect(statusService.snapshot.distanceToSafeZone, greaterThan(1000));
         expect(statusService.snapshot.hasLocation, isTrue);
       },

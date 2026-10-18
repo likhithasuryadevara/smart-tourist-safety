@@ -14,10 +14,7 @@ class _TouristManagementState extends State<TouristManagement> {
   // APPROVE / ACTIVATE TOURIST
   Future<void> _activateTourist(String userId) async {
     try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .update({
+      await FirebaseFirestore.instance.collection('users').doc(userId).update({
         'accountStatus': 'active',
         'approvalStatus': 'approved',
       });
@@ -25,46 +22,33 @@ class _TouristManagementState extends State<TouristManagement> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Tourist activated successfully'),
-        ),
+        const SnackBar(content: Text('Tourist activated successfully')),
       );
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
   // SUSPEND TOURIST
   Future<void> _suspendTourist(String userId) async {
     try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .update({
+      await FirebaseFirestore.instance.collection('users').doc(userId).update({
         'accountStatus': 'suspended',
       });
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Tourist suspended successfully'),
-        ),
+        const SnackBar(content: Text('Tourist suspended successfully')),
       );
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -112,9 +96,7 @@ class _TouristManagementState extends State<TouristManagement> {
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
+          return const Center(child: CircularProgressIndicator());
         }
 
         if (snapshot.hasError) {
@@ -132,14 +114,11 @@ class _TouristManagementState extends State<TouristManagement> {
         final filteredTourists = tourists.where((doc) {
           final data = doc.data() as Map<String, dynamic>;
 
-          final name =
-              (data['name'] ?? '').toString().toLowerCase();
+          final name = (data['name'] ?? '').toString().toLowerCase();
 
-          final email =
-              (data['email'] ?? '').toString().toLowerCase();
+          final email = (data['email'] ?? '').toString().toLowerCase();
 
-          final phone =
-              (data['phone'] ?? '').toString().toLowerCase();
+          final phone = (data['phone'] ?? '').toString().toLowerCase();
 
           return name.contains(searchText.toLowerCase()) ||
               email.contains(searchText.toLowerCase()) ||
@@ -150,27 +129,21 @@ class _TouristManagementState extends State<TouristManagement> {
         final activeCount = tourists.where((doc) {
           final data = doc.data() as Map<String, dynamic>;
 
-          return (data['accountStatus'] ?? 'active')
-                  .toString()
-                  .toLowerCase() ==
+          return (data['accountStatus'] ?? 'active').toString().toLowerCase() ==
               'active';
         }).length;
 
         final suspendedCount = tourists.where((doc) {
           final data = doc.data() as Map<String, dynamic>;
 
-          return (data['accountStatus'] ?? '')
-                  .toString()
-                  .toLowerCase() ==
+          return (data['accountStatus'] ?? '').toString().toLowerCase() ==
               'suspended';
         }).length;
 
         final pendingCount = tourists.where((doc) {
           final data = doc.data() as Map<String, dynamic>;
 
-          return (data['approvalStatus'] ?? '')
-                  .toString()
-                  .toLowerCase() ==
+          return (data['approvalStatus'] ?? '').toString().toLowerCase() ==
               'pending';
         }).length;
 
@@ -182,20 +155,14 @@ class _TouristManagementState extends State<TouristManagement> {
               // HEADER
               const Text(
                 'Tourist Management',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
               ),
 
               const SizedBox(height: 6),
 
               Text(
                 'Manage registered tourists',
-                style: TextStyle(
-                  color: Colors.grey.shade600,
-                  fontSize: 15,
-                ),
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 15),
               ),
 
               const SizedBox(height: 24),
@@ -309,43 +276,33 @@ class _TouristManagementState extends State<TouristManagement> {
                 )
               else
                 ...filteredTourists.map((doc) {
-                  final data =
-                      doc.data() as Map<String, dynamic>;
+                  final data = doc.data() as Map<String, dynamic>;
 
                   final userId = doc.id;
 
-                  final name =
-                      data['name'] ?? 'Unknown Tourist';
+                  final name = data['name'] ?? 'Unknown Tourist';
 
-                  final email =
-                      data['email'] ?? 'No email';
+                  final email = data['email'] ?? 'No email';
 
-                  final phone =
-                      data['phone'] ?? 'N/A';
+                  final phone = data['phone'] ?? 'N/A';
 
-                  final nationality =
-                      data['nationality'] ?? 'N/A';
+                  final nationality = data['nationality'] ?? 'N/A';
 
-                  final bloodGroup =
-                      data['bloodGroup'] ?? 'N/A';
+                  final bloodGroup = data['bloodGroup'] ?? 'N/A';
 
-                  final status =
-                    (data['accountStatus'] ?? 'active')
-                        .toString()
-                        .toLowerCase();
+                  final status = (data['accountStatus'] ?? 'active')
+                      .toString()
+                      .toLowerCase();
 
-                  final approvalStatus =
-                      (data['approvalStatus'] ?? '')
-                          .toString()
-                          .toLowerCase();
+                  final approvalStatus = (data['approvalStatus'] ?? '')
+                      .toString()
+                      .toLowerCase();
 
                   return Card(
-                    margin:
-                        const EdgeInsets.only(bottom: 14),
+                    margin: const EdgeInsets.only(bottom: 14),
                     elevation: 2,
                     shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(18),
@@ -355,12 +312,8 @@ class _TouristManagementState extends State<TouristManagement> {
                           CircleAvatar(
                             radius: 28,
                             child: Text(
-                              name
-                                      .toString()
-                                      .isNotEmpty
-                                  ? name
-                                      .toString()[0]
-                                      .toUpperCase()
+                              name.toString().isNotEmpty
+                                  ? name.toString()[0].toUpperCase()
                                   : '?',
                               style: const TextStyle(
                                 fontSize: 22,
@@ -374,15 +327,13 @@ class _TouristManagementState extends State<TouristManagement> {
                           // TOURIST INFO
                           Expanded(
                             child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   name.toString(),
                                   style: const TextStyle(
                                     fontSize: 18,
-                                    fontWeight:
-                                        FontWeight.bold,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
 
@@ -390,30 +341,21 @@ class _TouristManagementState extends State<TouristManagement> {
 
                                 Text(
                                   email.toString(),
-                                  style: TextStyle(
-                                    color:
-                                        Colors.grey.shade700,
-                                  ),
+                                  style: TextStyle(color: Colors.grey.shade700),
                                 ),
 
                                 const SizedBox(height: 4),
 
                                 Text(
                                   'Phone: $phone',
-                                  style: TextStyle(
-                                    color:
-                                        Colors.grey.shade700,
-                                  ),
+                                  style: TextStyle(color: Colors.grey.shade700),
                                 ),
 
                                 const SizedBox(height: 4),
 
                                 Text(
                                   'Nationality: $nationality',
-                                  style: TextStyle(
-                                    color:
-                                        Colors.grey.shade700,
-                                  ),
+                                  style: TextStyle(color: Colors.grey.shade700),
                                 ),
                               ],
                             ),
@@ -421,37 +363,31 @@ class _TouristManagementState extends State<TouristManagement> {
 
                           // STATUS + ACTIONS
                           Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.end,
+                            crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               // STATUS
                               Container(
-                                padding:
-                                    const EdgeInsets.symmetric(
+                                padding: const EdgeInsets.symmetric(
                                   horizontal: 12,
                                   vertical: 6,
                                 ),
                                 decoration: BoxDecoration(
-                                  color:
-                                      status == 'suspended'
-                                          ? Colors.red.shade100
-                                          : status == 'active'
-                                              ? Colors.green.shade100
-                                              : Colors.orange.shade100,
-                                  borderRadius:
-                                      BorderRadius.circular(20),
+                                  color: status == 'suspended'
+                                      ? Colors.red.shade100
+                                      : status == 'active'
+                                      ? Colors.green.shade100
+                                      : Colors.orange.shade100,
+                                  borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(
                                   status.toUpperCase(),
                                   style: TextStyle(
-                                    color:
-                                        status == 'suspended'
-                                            ? Colors.red.shade800
-                                            : status == 'active'
-                                                ? Colors.green.shade800
-                                                : Colors.orange.shade800,
-                                    fontWeight:
-                                        FontWeight.bold,
+                                    color: status == 'suspended'
+                                        ? Colors.red.shade800
+                                        : status == 'active'
+                                        ? Colors.green.shade800
+                                        : Colors.orange.shade800,
+                                    fontWeight: FontWeight.bold,
                                     fontSize: 12,
                                   ),
                                 ),
@@ -461,9 +397,7 @@ class _TouristManagementState extends State<TouristManagement> {
 
                               Text(
                                 'Blood: $bloodGroup',
-                                style: const TextStyle(
-                                  color: Colors.blue,
-                                ),
+                                style: const TextStyle(color: Colors.blue),
                               ),
 
                               const SizedBox(height: 10),
@@ -471,13 +405,9 @@ class _TouristManagementState extends State<TouristManagement> {
                               // VIEW DETAILS
                               ElevatedButton(
                                 onPressed: () {
-                                  _showTouristDetails(
-                                    context,
-                                    data,
-                                  );
+                                  _showTouristDetails(context, data);
                                 },
-                                child:
-                                    const Text('View Details'),
+                                child: const Text('View Details'),
                               ),
 
                               const SizedBox(height: 8),
@@ -491,25 +421,18 @@ class _TouristManagementState extends State<TouristManagement> {
                                       message:
                                           'Are you sure you want to approve $name?',
                                       onConfirm: () {
-                                        _activateTourist(
-                                          userId,
-                                        );
+                                        _activateTourist(userId);
                                       },
                                     );
                                   },
-                                  icon:
-                                      const Icon(Icons.check),
-                                  label:
-                                      const Text('Approve'),
+                                  icon: const Icon(Icons.check),
+                                  label: const Text('Approve'),
                                 )
                               else if (status == 'active')
                                 ElevatedButton.icon(
-                                  style:
-                                      ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        Colors.red,
-                                    foregroundColor:
-                                        Colors.white,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red,
+                                    foregroundColor: Colors.white,
                                   ),
                                   onPressed: () {
                                     _confirmAction(
@@ -517,25 +440,18 @@ class _TouristManagementState extends State<TouristManagement> {
                                       message:
                                           'Are you sure you want to suspend $name?',
                                       onConfirm: () {
-                                        _suspendTourist(
-                                          userId,
-                                        );
+                                        _suspendTourist(userId);
                                       },
                                     );
                                   },
-                                  icon:
-                                      const Icon(Icons.block),
-                                  label:
-                                      const Text('Suspend'),
+                                  icon: const Icon(Icons.block),
+                                  label: const Text('Suspend'),
                                 )
                               else if (status == 'suspended')
                                 ElevatedButton.icon(
-                                  style:
-                                      ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        Colors.green,
-                                    foregroundColor:
-                                        Colors.white,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    foregroundColor: Colors.white,
                                   ),
                                   onPressed: () {
                                     _confirmAction(
@@ -543,18 +459,12 @@ class _TouristManagementState extends State<TouristManagement> {
                                       message:
                                           'Are you sure you want to activate $name?',
                                       onConfirm: () {
-                                        _activateTourist(
-                                          userId,
-                                        );
+                                        _activateTourist(userId);
                                       },
                                     );
                                   },
-                                  icon:
-                                      const Icon(
-                                    Icons.check_circle,
-                                  ),
-                                  label:
-                                      const Text('Activate'),
+                                  icon: const Icon(Icons.check_circle),
+                                  label: const Text('Activate'),
                                 ),
                             ],
                           ),
@@ -582,10 +492,7 @@ class _TouristManagementState extends State<TouristManagement> {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            CircleAvatar(
-              radius: 25,
-              child: Icon(icon),
-            ),
+            CircleAvatar(radius: 25, child: Icon(icon)),
 
             const SizedBox(width: 12),
 
@@ -598,10 +505,7 @@ class _TouristManagementState extends State<TouristManagement> {
                     title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
                   ),
 
                   const SizedBox(height: 5),
@@ -623,50 +527,23 @@ class _TouristManagementState extends State<TouristManagement> {
   }
 
   // TOURIST DETAILS
-  void _showTouristDetails(
-    BuildContext context,
-    Map<String, dynamic> data,
-  ) {
+  void _showTouristDetails(BuildContext context, Map<String, dynamic> data) {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(
-            data['name'] ?? 'Tourist Details',
-          ),
+          title: Text(data['name'] ?? 'Tourist Details'),
           content: SingleChildScrollView(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _detailRow(
-                  'Email',
-                  data['email'],
-                ),
-                _detailRow(
-                  'Phone',
-                  data['phone'],
-                ),
-                _detailRow(
-                  'Nationality',
-                  data['nationality'],
-                ),
-                _detailRow(
-                  'Blood Group',
-                  data['bloodGroup'],
-                ),
-                _detailRow(
-                  'Status',
-                  data['accountStatus'] ?? 'active',
-                ),
-                _detailRow(
-                  'Approval',
-                  data['approvalStatus'] ?? 'N/A',
-                ),
-                _detailRow(
-                  'Role',
-                  data['role'],
-                ),
+                _detailRow('Email', data['email']),
+                _detailRow('Phone', data['phone']),
+                _detailRow('Nationality', data['nationality']),
+                _detailRow('Blood Group', data['bloodGroup']),
+                _detailRow('Status', data['accountStatus'] ?? 'active'),
+                _detailRow('Approval', data['approvalStatus'] ?? 'N/A'),
+                _detailRow('Role', data['role']),
               ],
             ),
           ),
@@ -683,31 +560,20 @@ class _TouristManagementState extends State<TouristManagement> {
     );
   }
 
-  Widget _detailRow(
-    String title,
-    dynamic value,
-  ) {
+  Widget _detailRow(String title, dynamic value) {
     return Padding(
-      padding:
-          const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
             width: 110,
             child: Text(
               '$title:',
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
-          Expanded(
-            child: Text(
-              value?.toString() ?? 'N/A',
-            ),
-          ),
+          Expanded(child: Text(value?.toString() ?? 'N/A')),
         ],
       ),
     );

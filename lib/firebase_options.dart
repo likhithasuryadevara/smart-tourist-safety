@@ -41,44 +41,46 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyBiRVDN5uhxc-u3eynLvz6NE4wv4DBoTjw',
-    appId: '1:840922301572:web:28da76561a335b7525eed1',
-    messagingSenderId: '840922301572',
-    projectId: 'smart-tourist-safety-e802e',
-    authDomain: 'smart-tourist-safety-e802e.firebaseapp.com',
-    storageBucket: 'smart-tourist-safety-e802e.firebasestorage.app',
+    apiKey: 'AIzaSyBOe3oVFcRx7qltfOobpFu9zFBLBVo5oYA',
+    appId: '1:711894981384:web:2ae23b101a9669b1942abd',
+    messagingSenderId: '711894981384',
+    projectId: 'smart-tourist-safety-sys-f8297',
+    authDomain: 'smart-tourist-safety-sys-f8297.firebaseapp.com',
+    storageBucket: 'smart-tourist-safety-sys-f8297.firebasestorage.app',
+    measurementId: 'G-J50S8BKFFY',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAcw9QPVwv7ww8qFqF4ZdHEYCnuS3LkQHg',
-    appId: '1:840922301572:android:1ac2b551c6cc7c2825eed1',
-    messagingSenderId: '840922301572',
-    projectId: 'smart-tourist-safety-e802e',
-    storageBucket: 'smart-tourist-safety-e802e.firebasestorage.app',
+    apiKey: 'AIzaSyDoJfag0I7MToHc2ofMr3JUh_v8SJeth_8',
+    appId: '1:711894981384:android:85cacb92756eb309942abd',
+    messagingSenderId: '711894981384',
+    projectId: 'smart-tourist-safety-sys-f8297',
+    storageBucket: 'smart-tourist-safety-sys-f8297.firebasestorage.app',
   );
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDpEhs4dp1ZEI77hHNrm_-NflUYatxDbOE',
-    appId: '1:840922301572:ios:c5d6eabd637a816425eed1',
-    messagingSenderId: '840922301572',
-    projectId: 'smart-tourist-safety-e802e',
-    storageBucket: 'smart-tourist-safety-e802e.firebasestorage.app',
+    apiKey: 'AIzaSyDQlMREuOr5VBQbBgz83yEBYSDVPPS0jPk',
+    appId: '1:711894981384:ios:7131a04de12641f4942abd',
+    messagingSenderId: '711894981384',
+    projectId: 'smart-tourist-safety-sys-f8297',
+    storageBucket: 'smart-tourist-safety-sys-f8297.firebasestorage.app',
     iosBundleId: 'com.example.smartTouristSafety',
   );
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyDpEhs4dp1ZEI77hHNrm_-NflUYatxDbOE',
-    appId: '1:840922301572:ios:c5d6eabd637a816425eed1',
-    messagingSenderId: '840922301572',
-    projectId: 'smart-tourist-safety-e802e',
-    storageBucket: 'smart-tourist-safety-e802e.firebasestorage.app',
+    apiKey: 'AIzaSyDQlMREuOr5VBQbBgz83yEBYSDVPPS0jPk',
+    appId: '1:711894981384:ios:7131a04de12641f4942abd',
+    messagingSenderId: '711894981384',
+    projectId: 'smart-tourist-safety-sys-f8297',
+    storageBucket: 'smart-tourist-safety-sys-f8297.firebasestorage.app',
     iosBundleId: 'com.example.smartTouristSafety',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyBiRVDN5uhxc-u3eynLvz6NE4wv4DBoTjw',
-    appId: '1:840922301572:web:bfda4c673e58160125eed1',
-    messagingSenderId: '840922301572',
-    projectId: 'smart-tourist-safety-e802e',
-    authDomain: 'smart-tourist-safety-e802e.firebaseapp.com',
-    storageBucket: 'smart-tourist-safety-e802e.firebasestorage.app',
+    apiKey: 'AIzaSyBOe3oVFcRx7qltfOobpFu9zFBLBVo5oYA',
+    appId: '1:711894981384:web:54f1f82f2333fae6942abd',
+    messagingSenderId: '711894981384',
+    projectId: 'smart-tourist-safety-sys-f8297',
+    authDomain: 'smart-tourist-safety-sys-f8297.firebaseapp.com',
+    storageBucket: 'smart-tourist-safety-sys-f8297.firebasestorage.app',
+    measurementId: 'G-BW0DE2565B',
   );
 }

@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:smart_tourist_safety/services/tourist_history_service.dart';
 import 'package:smart_tourist_safety/services/voice_sos_service.dart';
 
 void main() {
@@ -67,11 +68,32 @@ void main() {
       expect(
         VoiceSosService.hasActiveSos([
           {'status': 'resolved'},
-          {'status': 'acknowledged'},
+          {'status': 'Acknowledged'},
+        ]),
+        isTrue,
+      );
+      expect(
+        VoiceSosService.hasActiveSos([
+          {'status': 'Resolved', 'resolved': false},
         ]),
         isFalse,
       );
       expect(VoiceSosService.hasActiveSos([]), isFalse);
+    });
+
+    test('normalizes SOS status values consistently', () {
+      expect(VoiceSosService.normalizeStatus('  Active  '), 'active');
+      expect(VoiceSosService.normalizeStatus(null), isEmpty);
+      expect(VoiceSosService.isActiveSosStatus('Acknowledged'), isTrue);
+      expect(VoiceSosService.isResolvedSosStatus('Resolved'), isTrue);
+      expect(VoiceSosService.isResolvedSosStatus(false), isFalse);
+    });
+
+    test('history service treats status conflicts as resolved-only when status says resolved', () {
+      expect(TouristHistoryService.normalizeStatus('  Resolved  '), 'resolved');
+      expect(TouristHistoryService.isSosStatusActive('Resolved'), isFalse);
+      expect(TouristHistoryService.isSosStatusResolved('Resolved'), isTrue);
+      expect(TouristHistoryService.isSosStatusActive('Acknowledged'), isTrue);
     });
   });
 }

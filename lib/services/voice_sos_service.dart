@@ -82,8 +82,20 @@ class VoiceSosService {
     return triggerPhrases.contains(normalized);
   }
 
+  static String normalizeStatus(Object? value) =>
+      value?.toString().trim().toLowerCase() ?? '';
+
+  static bool isActiveSosStatus(Object? status) {
+    final normalized = normalizeStatus(status);
+    return normalized == 'active' || normalized == 'acknowledged';
+  }
+
+  static bool isResolvedSosStatus(Object? status) {
+    return normalizeStatus(status) == 'resolved';
+  }
+
   static bool hasActiveSos(Iterable<Map<String, dynamic>> sosRecords) =>
-      sosRecords.any((record) => record['status'] == 'active');
+      sosRecords.any((record) => isActiveSosStatus(record['status']));
 
   static bool shouldProcessRecognitionResult(String recognizedWords) =>
       recognizedWords.trim().isNotEmpty;
@@ -99,8 +111,7 @@ class VoiceSosService {
         !normalized.contains('audio');
   }
 
-  bool get isSessionSettled =>
-      !_recognitionSession.isActive && !_starting;
+  bool get isSessionSettled => !_recognitionSession.isActive && !_starting;
 
   Future<bool> startListening({
     required ValueChanged<bool> onListeningChanged,

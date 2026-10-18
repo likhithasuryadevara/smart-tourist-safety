@@ -8,10 +8,7 @@ Future<bool?> showSosConfirmationDialog(BuildContext context) {
       return AlertDialog(
         title: const Row(
           children: [
-            Icon(
-              Icons.warning_rounded,
-              color: Colors.red,
-            ),
+            Icon(Icons.warning_rounded, color: Colors.red),
             SizedBox(width: 8),
             Text('Confirm SOS'),
           ],

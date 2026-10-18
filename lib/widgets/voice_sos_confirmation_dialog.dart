@@ -64,10 +64,7 @@ class _VoiceSosConfirmationDialogState
         title: const Text(
           'Voice SOS Detected',
           textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w800,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -89,10 +86,7 @@ class _VoiceSosConfirmationDialogState
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: const Color(0xFFE11D48),
-                  width: 3,
-                ),
+                border: Border.all(color: const Color(0xFFE11D48), width: 3),
               ),
               child: Text(
                 '$_secondsRemaining',
@@ -104,10 +98,7 @@ class _VoiceSosConfirmationDialogState
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'seconds',
-              style: TextStyle(color: Color(0xFFCBD5E1)),
-            ),
+            const Text('seconds', style: TextStyle(color: Color(0xFFCBD5E1))),
           ],
         ),
         actionsAlignment: MainAxisAlignment.spaceBetween,

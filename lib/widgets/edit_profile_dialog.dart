@@ -45,7 +45,7 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
       text: widget.userData?['nationality']?.toString() ?? '',
     );
 
-       _bloodGroupController = TextEditingController(
+    _bloodGroupController = TextEditingController(
       text: widget.userData?['bloodGroup']?.toString() ?? '',
     );
 
@@ -61,6 +61,7 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
       text: widget.userData?['emergencyContactRelationship']?.toString() ?? '',
     );
   }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -99,8 +100,7 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
     }
     final emergencyName = _emergencyNameController.text.trim();
     final emergencyPhone = _emergencyPhoneController.text.trim();
-    final emergencyRelationship =
-        _emergencyRelationshipController.text.trim();
+    final emergencyRelationship = _emergencyRelationshipController.text.trim();
 
     final emergencyFieldsFilled =
         emergencyName.isNotEmpty ||
@@ -116,9 +116,7 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
       }
 
       if (!RegExp(r'^[6-9][0-9]{9}$').hasMatch(emergencyPhone)) {
-        _showError(
-          'Enter a valid 10-digit emergency contact number.',
-        );
+        _showError('Enter a valid 10-digit emergency contact number.');
         return;
       }
     }
@@ -127,27 +125,36 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
       _saving = true;
     });
 
-    try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .update({
-        'name': _nameController.text.trim(),
-        'phone': _phoneController.text.trim(),
-        'nationality': _nationalityController.text.trim(),
-        'bloodGroup': _bloodGroupController.text.trim(),
-        'emergencyContactName': _emergencyNameController.text.trim(),
-        'emergencyContactPhone': _emergencyPhoneController.text.trim(),
-        'emergencyContactRelationship':
-            _emergencyRelationshipController.text.trim(),
-      });
+try {
+        // Update Firebase Auth display name if changed
+        final newName = _nameController.text.trim();
+        if (user.displayName != newName) {
+          await user.updateDisplayName(newName);
+        }
+
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).update(
+        {
+          'name': _nameController.text.trim(),
+          'phone': _phoneController.text.trim(),
+          'nationality': _nationalityController.text.trim(),
+          'bloodGroup': _bloodGroupController.text.trim(),
+          'emergencyContactName': _emergencyNameController.text.trim(),
+          'emergencyContactPhone': _emergencyPhoneController.text.trim(),
+          'emergencyContactRelationship': _emergencyRelationshipController.text
+              .trim(),
+        },
+      );
 
       if (!mounted) return;
 
       Navigator.pop(context);
       widget.onSaved();
     } catch (error, stackTrace) {
-      AppErrorMessage.log(error, stackTrace, context: 'Updating tourist profile');
+      AppErrorMessage.log(
+        error,
+        stackTrace,
+        context: 'Updating tourist profile',
+      );
       if (!mounted) return;
 
       setState(() {
@@ -164,11 +171,8 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-      ),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -217,7 +221,7 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                 prefixIcon: Icon(Icons.bloodtype_outlined),
               ),
             ),
-                        const SizedBox(height: 14),
+            const SizedBox(height: 14),
 
             TextField(
               controller: _emergencyNameController,
@@ -252,9 +256,7 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: _saving
-              ? null
-              : () => Navigator.pop(context),
+          onPressed: _saving ? null : () => Navigator.pop(context),
           child: const Text('Cancel'),
         ),
 
@@ -264,9 +266,7 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
               ? const SizedBox(
                   width: 18,
                   height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                  ),
+                  child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Text('Save Changes'),
         ),

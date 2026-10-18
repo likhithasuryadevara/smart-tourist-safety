@@ -52,10 +52,7 @@ class SosSuccessScreen extends StatelessWidget {
                 const Text(
                   'Your emergency request has been successfully submitted.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 17,
-                    color: Colors.black87,
-                  ),
+                  style: TextStyle(fontSize: 17, color: Colors.black87),
                 ),
 
                 const SizedBox(height: 35),
@@ -66,9 +63,7 @@ class SosSuccessScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Colors.green.shade200,
-                    ),
+                    border: Border.all(color: Colors.green.shade200),
                   ),
                   child: const Column(
                     children: [
@@ -96,12 +91,9 @@ class SosSuccessScreen extends StatelessWidget {
                 const SizedBox(height: 30),
 
                 const Text(
-                  'Emergency assistance has been requested. Please remain in a safe location and keep your phone available.',
+                  'Your SOS request has been created. Please remain in a safe location.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: Colors.black54,
-                  ),
+                  style: TextStyle(fontSize: 15, color: Colors.black54),
                 ),
 
                 const SizedBox(height: 30),
@@ -110,16 +102,12 @@ class SosSuccessScreen extends StatelessWidget {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.of(context).popUntil(
-                        (route) => route.isFirst,
-                      );
+                      Navigator.of(context).popUntil((route) => route.isFirst);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 16,
-                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     child: const Text(
                       'BACK TO DASHBOARD',
@@ -154,19 +142,12 @@ class _SuccessRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(
-          icon,
-          color: Colors.green,
-          size: 28,
-        ),
+        Icon(icon, color: Colors.green, size: 28),
         const SizedBox(width: 14),
         Expanded(
           child: Text(
             title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
         ),
         Text(

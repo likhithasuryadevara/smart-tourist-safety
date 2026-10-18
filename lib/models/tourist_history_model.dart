@@ -1,8 +1,4 @@
-enum TouristHistoryType {
-  sos,
-  safeZone,
-  dangerZone,
-}
+enum TouristHistoryType { sos, safeZone, dangerZone }
 
 enum TouristHistoryFilter {
   all,

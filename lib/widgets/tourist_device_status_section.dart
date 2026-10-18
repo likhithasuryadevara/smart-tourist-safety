@@ -100,8 +100,8 @@ class _TouristDeviceStatusSectionState
                   context: 'Loading tourist device status',
                 );
               }
-              final device = deviceSnapshot.data ??
-                  const TouristDeviceStatusModel();
+              final device =
+                  deviceSnapshot.data ?? const TouristDeviceStatusModel();
 
               return StreamBuilder<TouristSafetySnapshot>(
                 stream: _gpsStatusStream,
@@ -163,11 +163,11 @@ class _TouristDeviceStatusSectionState
                               width: constraints.maxWidth,
                               child: DecoratedBox(
                                 decoration: BoxDecoration(
-                                    color: const Color(0xFFFFF7F5),
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: const Color(0xFFF3D6D1),
-                                    ),
+                                  color: const Color(0xFFFFF7F5),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: const Color(0xFFF3D6D1),
+                                  ),
                                 ),
                                 child: Padding(
                                   padding: const EdgeInsets.all(12),
@@ -189,8 +189,9 @@ class _TouristDeviceStatusSectionState
                                       TextButton(
                                         onPressed: _retryDeviceStatus,
                                         style: TextButton.styleFrom(
-                                          foregroundColor:
-                                              const Color(0xFF0F766E),
+                                          foregroundColor: const Color(
+                                            0xFF0F766E,
+                                          ),
                                         ),
                                         child: const Text('Retry'),
                                       ),

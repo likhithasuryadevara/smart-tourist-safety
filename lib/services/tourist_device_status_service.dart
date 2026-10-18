@@ -6,11 +6,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/tourist_device_status_model.dart';
 
 class TouristDeviceStatusService {
-  TouristDeviceStatusService({
-    FirebaseFirestore? firestore,
-    FirebaseAuth? auth,
-  }) : _firestore = firestore ?? FirebaseFirestore.instance,
-       _auth = auth ?? FirebaseAuth.instance;
+  TouristDeviceStatusService({FirebaseFirestore? firestore, FirebaseAuth? auth})
+    : _firestore = firestore ?? FirebaseFirestore.instance,
+      _auth = auth ?? FirebaseAuth.instance;
 
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
@@ -28,9 +26,7 @@ class TouristDeviceStatusService {
         .doc(user.uid)
         .snapshots()
         .map(
-          (snapshot) => TouristDeviceStatusModel.fromUserData(
-            snapshot.data(),
-          ),
+          (snapshot) => TouristDeviceStatusModel.fromUserData(snapshot.data()),
         );
   }
 }

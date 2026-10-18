@@ -235,7 +235,7 @@ class _TouristSafetyStatusState extends State<TouristSafetyStatus> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    if (status.locationUpdatedAt case final updatedAt?) ...[
+                    if (status.lastUpdated case final updatedAt?) ...[
                       const SizedBox(height: 3),
                       Text(
                         'Updated ${_formatTimestamp(updatedAt)}',
@@ -349,8 +349,7 @@ class _TouristSafetyStatusState extends State<TouristSafetyStatus> {
       'Location services are turned off. Please enable location to continue.',
     TouristGpsStatus.permissionDenied =>
       'Location permission is required to provide safety tracking.',
-    TouristGpsStatus.permissionDeniedForever =>
-      'Location permission is disabled. Please enable it in your device settings.',
+    TouristGpsStatus.permissionDeniedForever => 'Location permission is disabled. Please enable it in your device settings.',
     TouristGpsStatus.unavailable =>
       'Unable to obtain your current location. Please try again.',
     TouristGpsStatus.retrying => 'GPS is reconnecting. Please wait...',

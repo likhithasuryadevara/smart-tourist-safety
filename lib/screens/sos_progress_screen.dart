@@ -20,11 +20,7 @@ class SosProgressScreen extends StatelessWidget {
             children: [
               const SizedBox(height: 20),
 
-              const Icon(
-                Icons.emergency_rounded,
-                color: Colors.red,
-                size: 80,
-              ),
+              const Icon(Icons.emergency_rounded, color: Colors.red, size: 80),
 
               const SizedBox(height: 20),
 
@@ -43,10 +39,7 @@ class SosProgressScreen extends StatelessWidget {
               const Text(
                 'Your emergency request is currently active.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 17,
-                  color: Colors.black87,
-                ),
+                style: TextStyle(fontSize: 17, color: Colors.black87),
               ),
 
               const SizedBox(height: 35),
@@ -93,25 +86,16 @@ class SosProgressScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Colors.red.shade200,
-                  ),
+                  border: Border.all(color: Colors.red.shade200),
                 ),
                 child: const Column(
                   children: [
-                    Icon(
-                      Icons.info_outline,
-                      color: Colors.red,
-                      size: 30,
-                    ),
+                    Icon(Icons.info_outline, color: Colors.red, size: 30),
                     SizedBox(height: 12),
                     Text(
                       'Please remain in a safe location and keep your phone available.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.black87,
-                      ),
+                      style: TextStyle(fontSize: 15, color: Colors.black87),
                     ),
                   ],
                 ),
@@ -127,20 +111,12 @@ class SosProgressScreen extends StatelessWidget {
                   },
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.red,
-                    side: const BorderSide(
-                      color: Colors.red,
-                      width: 2,
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 16,
-                    ),
+                    side: const BorderSide(color: Colors.red, width: 2),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                   child: const Text(
                     'BACK TO ACTIVE SOS',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -160,11 +136,7 @@ class SosProgressScreen extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(
-          icon,
-          color: completed ? Colors.red : Colors.grey,
-          size: 32,
-        ),
+        Icon(icon, color: completed ? Colors.red : Colors.grey, size: 32),
         const SizedBox(width: 16),
         Expanded(
           child: Column(
@@ -181,10 +153,7 @@ class SosProgressScreen extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 subtitle,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Colors.black54,
-                ),
+                style: const TextStyle(fontSize: 14, color: Colors.black54),
               ),
             ],
           ),
@@ -195,11 +164,7 @@ class SosProgressScreen extends StatelessWidget {
 
   Widget _buildLine() {
     return Container(
-      margin: const EdgeInsets.only(
-        left: 15,
-        top: 5,
-        bottom: 5,
-      ),
+      margin: const EdgeInsets.only(left: 15, top: 5, bottom: 5),
       width: 2,
       height: 35,
       color: Colors.red.shade200,

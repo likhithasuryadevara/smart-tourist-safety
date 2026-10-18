@@ -35,11 +35,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     if (_passwordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Passwords do not match.'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Passwords do not match.')));
       return;
     }
 
@@ -47,23 +45,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _isLoading = true;
     });
 
+    User? createdUser;
+
     try {
       // 1. Create Firebase Authentication account
-      final userCredential =
-          await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
+      final userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
+          );
 
-      final user = userCredential.user;
+      createdUser = userCredential.user;
 
-      if (user == null) {
+      if (createdUser == null) {
         throw Exception('User account could not be created.');
       }
-      await user.updateDisplayName(
-        _nameController.text.trim(),
-      );
-      await user.sendEmailVerification();
+      await createdUser.updateDisplayName(_nameController.text.trim());
+      await createdUser.sendEmailVerification();
       // 2. Create a digital ID
       final digitalId =
           'STS-${DateTime.now().millisecondsSinceEpoch.toString()}';
@@ -71,26 +69,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
       // 3. Save tourist profile in Firestore
       await FirebaseFirestore.instance
           .collection('users')
-          .doc(user.uid)
+          .doc(createdUser.uid)
           .set({
-        'uid': user.uid,
-        'name': _nameController.text.trim(),
-        'email': _emailController.text.trim(),
-        'phone': _phoneController.text.trim(),
-        'nationality': _nationalityController.text.trim(),
-        'bloodGroup': _bloodGroup,
-        'role': 'tourist',
-        'accountStatus': 'active',
-        'approvalStatus': 'pending',
-        'digitalId': digitalId,
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+            'uid': createdUser.uid,
+            'name': _nameController.text.trim(),
+            'email': _emailController.text.trim(),
+            'phone': _phoneController.text.trim(),
+            'nationality': _nationalityController.text.trim(),
+            'bloodGroup': _bloodGroup,
+            'role': 'tourist',
+            'accountStatus': 'active',
+            'approvalStatus': 'pending',
+            'digitalId': digitalId,
+            'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
 
       if (!mounted) return;
 
       // 4. Sign out after registration because approval is still pending
       await FirebaseAuth.instance.signOut();
+      createdUser = null; // Mark as cleaned up
 
       if (!mounted) return;
 
@@ -140,11 +139,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
     } on FirebaseException catch (e, stackTrace) {
-      AppErrorMessage.log(e, stackTrace, context: 'Saving tourist registration');
+      // Firestore write failed - clean up the created Auth user
+      if (createdUser != null) {
+        try {
+          await createdUser.delete();
+        } catch (deleteError) {
+          AppErrorMessage.log(
+            deleteError,
+            StackTrace.current,
+            context: 'Cleaning up Auth user after Firestore failure',
+          );
+        }
+        createdUser = null;
+      }
+      AppErrorMessage.log(
+        e,
+        stackTrace,
+        context: 'Saving tourist registration',
+      );
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -158,11 +173,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       );
     } catch (error, stackTrace) {
-      AppErrorMessage.log(
-        error,
-        stackTrace,
-        context: 'Registering tourist',
-      );
+      // Clean up the created Auth user on any other error
+      if (createdUser != null) {
+        try {
+          await createdUser.delete();
+        } catch (deleteError) {
+          AppErrorMessage.log(
+            deleteError,
+            StackTrace.current,
+            context: 'Cleaning up Auth user after unexpected error',
+          );
+        }
+        createdUser = null;
+      }
+      AppErrorMessage.log(error, stackTrace, context: 'Registering tourist');
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -216,11 +240,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 children: [
                   const Row(
                     children: [
-                      Icon(
-                        Icons.shield,
-                        color: Color(0xFF2DD4BF),
-                        size: 32,
-                      ),
+                      Icon(Icons.shield, color: Color(0xFF2DD4BF), size: 32),
                       SizedBox(width: 10),
                       Text(
                         'Smart Tourist Safety',
@@ -237,10 +257,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   const Text(
                     'Register for Safety Tracking & Digital Identity',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 13,
-                    ),
+                    style: TextStyle(color: Colors.white70, fontSize: 13),
                   ),
 
                   const SizedBox(height: 28),
@@ -356,8 +373,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       suffixIcon: IconButton(
                         onPressed: () {
                           setState(() {
-                            _obscureConfirmPassword =
-                                !_obscureConfirmPassword;
+                            _obscureConfirmPassword = !_obscureConfirmPassword;
                           });
                         },
                         icon: Icon(
@@ -509,20 +525,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             hintText: 'Select blood group',
             icon: Icons.bloodtype_outlined,
           ),
-          items: const [
-            'O+',
-            'A+',
-            'B+',
-            'AB+',
-            'O-',
-            'A-',
-            'B-',
-            'AB-',
-          ].map((group) {
-            return DropdownMenuItem(
-              value: group,
-              child: Text(group),
-            );
+          items: const ['O+', 'A+', 'B+', 'AB+', 'O-', 'A-', 'B-', 'AB-'].map((
+            group,
+          ) {
+            return DropdownMenuItem(value: group, child: Text(group));
           }).toList(),
           onChanged: (value) {
             if (value != null) {
@@ -581,10 +587,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       controller: controller,
       keyboardType: keyboardType,
       style: const TextStyle(color: Colors.white),
-      decoration: _inputDecoration(
-        hintText: hintText,
-        icon: icon,
-      ),
+      decoration: _inputDecoration(hintText: hintText, icon: icon),
       validator: validator,
     );
   }
@@ -597,37 +600,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return InputDecoration(
       hintText: hintText,
       hintStyle: const TextStyle(color: Colors.white38),
-      prefixIcon: Icon(
-        icon,
-        color: Colors.white54,
-      ),
+      prefixIcon: Icon(icon, color: Colors.white54),
       suffixIcon: suffixIcon,
       filled: true,
       fillColor: const Color(0xFF0F172A),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: Color(0xFF334155),
-        ),
+        borderSide: const BorderSide(color: Color(0xFF334155)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: Color(0xFF334155),
-        ),
+        borderSide: const BorderSide(color: Color(0xFF334155)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: Color(0xFF14B8A6),
-          width: 2,
-        ),
+        borderSide: const BorderSide(color: Color(0xFF14B8A6), width: 2),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: Colors.redAccent,
-        ),
+        borderSide: const BorderSide(color: Colors.redAccent),
       ),
     );
   }

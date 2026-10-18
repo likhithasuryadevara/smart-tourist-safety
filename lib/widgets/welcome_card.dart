@@ -3,10 +3,7 @@ import 'package:flutter/material.dart';
 class WelcomeCard extends StatelessWidget {
   final String name;
 
-  const WelcomeCard({
-    super.key,
-    required this.name,
-  });
+  const WelcomeCard({super.key, required this.name});
 
   @override
   Widget build(BuildContext context) {
@@ -69,10 +66,7 @@ class WelcomeCard extends StatelessWidget {
 
                 const Text(
                   'Your safety status and live location are being monitored.',
-                  style: TextStyle(
-                    color: Color(0xFF73818A),
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: Color(0xFF73818A), fontSize: 12),
                 ),
               ],
             ),

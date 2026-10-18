@@ -12,30 +12,28 @@ class TouristHistoryService {
     String touristId,
   ) {
     return _firestore
-        .collection('sos')
-        .where('touristId', isEqualTo: touristId)
+        .collection('sos_alerts')
+        .where('userId', isEqualTo: touristId)
         .snapshots();
   }
 
-  Stream<QuerySnapshot<Map<String, dynamic>>> watchNotificationHistory(
+  Stream<QuerySnapshot<Map<String, dynamic>>> watchGeoFenceHistory(
     String touristId,
   ) {
     return _firestore
-        .collection('notifications')
-        .where('touristId', isEqualTo: touristId)
+        .collection('geo_fence_alerts')
+        .where('userId', isEqualTo: touristId)
         .snapshots();
   }
 
   List<TouristHistoryEvent> combineHistory({
     required List<QueryDocumentSnapshot<Map<String, dynamic>>> sosDocuments,
     required List<QueryDocumentSnapshot<Map<String, dynamic>>>
-    notificationDocuments,
+    geoFenceDocuments,
   }) {
     final events = <TouristHistoryEvent>[
       for (final document in sosDocuments) _sosEvent(document),
-      ...notificationDocuments
-          .map(_notificationEvent)
-          .whereType<TouristHistoryEvent>(),
+      ...geoFenceDocuments.map(_geoFenceEvent).whereType<TouristHistoryEvent>(),
     ];
 
     events.sort((a, b) {
@@ -58,54 +56,76 @@ class TouristHistoryService {
       type: TouristHistoryType.sos,
       title: 'SOS Emergency',
       status: _nonEmptyString(data['status']) ?? 'Unknown',
-      occurredAt: _dateTime(data['createdAt']),
+      occurredAt: _dateTime(data['timestamp'] ?? data['createdAt']),
       latitude: _number(data['latitude']),
       longitude: _number(data['longitude']),
-      source: 'sos',
+      source: 'sos_alerts',
       sosData: data,
     );
   }
 
-  TouristHistoryEvent? _notificationEvent(
+  TouristHistoryEvent? _geoFenceEvent(
     QueryDocumentSnapshot<Map<String, dynamic>> document,
   ) {
     final data = document.data();
-    final notificationType = data['type']?.toString().toLowerCase();
+    final eventType = data['eventType']?.toString() ?? '';
+    final zoneType = data['zoneType']?.toString() ?? '';
+    final zoneName = data['safeZoneName']?.toString() ?? 'Unknown zone';
+    final timestamp = data['timestamp'];
 
     final TouristHistoryType? type;
     final String? status;
-    switch (notificationType) {
-      case 'safe_zone':
+    final String? title;
+    final String? description;
+
+    if (eventType == 'ENTER') {
+      if (zoneType == 'Safe') {
         type = TouristHistoryType.safeZone;
         status = 'Entered';
-      case 'zone_exit':
-        type = TouristHistoryType.safeZone;
-        status = 'Exited';
-      case 'danger_zone':
+        title = 'Safe Zone Entered';
+        description = 'You have entered $zoneName.';
+      } else if (zoneType == 'Danger') {
         type = TouristHistoryType.dangerZone;
         status = 'Entered';
-      case 'sos_acknowledged':
-        type = TouristHistoryType.sos;
-        status = 'Acknowledged';
-      case 'sos_resolved':
-        type = TouristHistoryType.sos;
-        status = 'Resolved';
-      default:
-        // SOS confirmation duplicates the corresponding SOS record. Admin and
-        // unrelated messages are not safety events in this history.
-        return null;
+        title = 'Danger Zone Alert';
+        description = 'You have entered $zoneName. Please exercise caution.';
+      } else {
+        type = TouristHistoryType.safeZone;
+        status = 'Entered';
+        title = 'Zone Entered';
+        description = 'You have entered $zoneName.';
+      }
+    } else if (eventType == 'EXIT') {
+      if (zoneType == 'Safe') {
+        type = TouristHistoryType.safeZone;
+        status = 'Exited';
+        title = 'Safe Zone Exited';
+        description = 'You have left $zoneName.';
+      } else if (zoneType == 'Danger') {
+        type = TouristHistoryType.dangerZone;
+        status = 'Exited';
+        title = 'Danger Zone Exited';
+        description = 'You have left $zoneName.';
+      } else {
+        type = TouristHistoryType.safeZone;
+        status = 'Exited';
+        title = 'Zone Exited';
+        description = 'You have left $zoneName.';
+      }
+    } else {
+      return null;
     }
 
     return TouristHistoryEvent(
-      id: 'notification:${document.id}',
+      id: 'geo:${document.id}',
       type: type,
-      title: _nonEmptyString(data['title']) ?? typeLabelFor(type),
+      title: title,
       status: status,
-      occurredAt: _dateTime(data['createdAt']),
+      occurredAt: _dateTime(timestamp),
       latitude: _number(data['latitude']),
       longitude: _number(data['longitude']),
-      source: 'notifications',
-      description: _nonEmptyString(data['message']),
+      source: 'geo_fence_alerts',
+      description: description,
     );
   }
 
@@ -124,6 +144,18 @@ class TouristHistoryService {
     if (value is Timestamp) return value.toDate();
     if (value is DateTime) return value;
     return null;
+  }
+
+  static String normalizeStatus(Object? value) =>
+      value?.toString().trim().toLowerCase() ?? '';
+
+  static bool isSosStatusActive(Object? value) {
+    final normalized = normalizeStatus(value);
+    return normalized == 'active' || normalized == 'acknowledged';
+  }
+
+  static bool isSosStatusResolved(Object? value) {
+    return normalizeStatus(value) == 'resolved';
   }
 
   static double? _number(Object? value) {

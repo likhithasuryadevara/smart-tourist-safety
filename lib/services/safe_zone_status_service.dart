@@ -21,7 +21,7 @@ class TouristSafetySnapshot {
   final TouristZoneStatus zoneStatus;
   final double? latitude;
   final double? longitude;
-  final DateTime? locationUpdatedAt;
+  final DateTime? lastUpdated;
   final double? distanceToSafeZone;
   final bool isInsideSafeZone;
 
@@ -30,7 +30,7 @@ class TouristSafetySnapshot {
     this.zoneStatus = TouristZoneStatus.unknown,
     this.latitude,
     this.longitude,
-    this.locationUpdatedAt,
+    this.lastUpdated,
     this.distanceToSafeZone,
     this.isInsideSafeZone = false,
   });
@@ -90,19 +90,28 @@ class SafeZoneStatusService {
         clearDistance: status != TouristGpsStatus.active,
       ),
     );
+    if (status != TouristGpsStatus.active) updateStatus(false);
   }
 
   void updateLocation({
     required double latitude,
     required double longitude,
     required DateTime updatedAt,
-    required SafeZone? safeZone,
+    SafeZone? safeZone,
+    List<SafeZone>? safeZones,
     required List<DangerZone> dangerZones,
     required SafeZoneService safeZoneService,
     double? precomputedDistanceToSafeZone,
     bool? precomputedInsideSafeZone,
     bool? precomputedInsideDangerZone,
+    bool zoneInformationAvailable = true,
   }) {
+    if (!SafeZoneService.isValidCoordinate(latitude, longitude)) {
+      throw ArgumentError(
+        'Location coordinates must be finite and within geographic bounds.',
+      );
+    }
+
     final gpsIsActive = _snapshot.gpsStatus == TouristGpsStatus.active;
     final insideDangerZone =
         precomputedInsideDangerZone ??
@@ -113,38 +122,49 @@ class SafeZoneStatusService {
             dangerZone: zone,
           ),
         );
-    final distance = !gpsIsActive || safeZone == null
+
+    final resolvedSafeZones =
+        safeZones ?? (safeZone != null ? [safeZone] : const <SafeZone>[]);
+
+    final distance = !gpsIsActive || resolvedSafeZones.isEmpty
         ? null
         : precomputedDistanceToSafeZone ??
-              safeZoneService.calculateDistance(
-                touristLatitude: latitude,
-                touristLongitude: longitude,
-                safeZone: safeZone,
-              );
+              resolvedSafeZones
+                  .map(
+                    (zone) => safeZoneService.calculateDistance(
+                      touristLatitude: latitude,
+                      touristLongitude: longitude,
+                      safeZone: zone,
+                    ),
+                  )
+                  .reduce((a, b) => a < b ? a : b);
+
     final insideSafeZone =
         precomputedInsideSafeZone ??
         (gpsIsActive &&
-            safeZone != null &&
-            safeZoneService.isInsideSafeZone(
-              touristLatitude: latitude,
-              touristLongitude: longitude,
-              safeZone: safeZone,
+            resolvedSafeZones.any(
+              (zone) => safeZoneService.isInsideSafeZone(
+                touristLatitude: latitude,
+                touristLongitude: longitude,
+                safeZone: zone,
+              ),
             ));
 
-    final zoneStatus = !gpsIsActive
+    final zoneStatus = !gpsIsActive || !zoneInformationAvailable
         ? TouristZoneStatus.unknown
         : insideDangerZone
         ? TouristZoneStatus.danger
-        : safeZone == null
+        : resolvedSafeZones.isEmpty
         ? TouristZoneStatus.unknown
         : insideSafeZone
         ? TouristZoneStatus.safe
         : TouristZoneStatus.outsideSafeZone;
+
     _publish(
       _snapshot.copyWith(
         latitude: latitude,
         longitude: longitude,
-        locationUpdatedAt: updatedAt,
+        lastUpdated: updatedAt,
         distanceToSafeZone: distance,
         zoneStatus: zoneStatus,
         isInsideSafeZone: insideSafeZone,
@@ -204,7 +224,7 @@ class SafeZoneStatusService {
     return _safeZoneController!.stream;
   }
 
-  bool _isInsideSafeZone = true;
+  bool _isInsideSafeZone = false;
 
   bool get isInsideSafeZone => _isInsideSafeZone;
 
@@ -237,7 +257,7 @@ extension on TouristSafetySnapshot {
     TouristZoneStatus? zoneStatus,
     double? latitude,
     double? longitude,
-    DateTime? locationUpdatedAt,
+    DateTime? lastUpdated,
     double? distanceToSafeZone,
     bool? isInsideSafeZone,
     bool clearDistance = false,
@@ -247,7 +267,7 @@ extension on TouristSafetySnapshot {
       zoneStatus: zoneStatus ?? this.zoneStatus,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
-      locationUpdatedAt: locationUpdatedAt ?? this.locationUpdatedAt,
+      lastUpdated: lastUpdated ?? this.lastUpdated,
       distanceToSafeZone: clearDistance
           ? null
           : distanceToSafeZone ?? this.distanceToSafeZone,

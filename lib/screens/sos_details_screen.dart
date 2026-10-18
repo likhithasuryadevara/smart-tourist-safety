@@ -4,33 +4,29 @@ import 'package:flutter/material.dart';
 class SosDetailsScreen extends StatelessWidget {
   final Map<String, dynamic> sosData;
 
-  const SosDetailsScreen({
-    super.key,
-    required this.sosData,
-  });
+  const SosDetailsScreen({super.key, required this.sosData});
 
   @override
   Widget build(BuildContext context) {
-    final status =
-        sosData['status']?.toString() ?? 'unknown';
+    final status = sosData['status']?.toString() ?? 'unknown';
 
-    final latitude =
-        sosData['latitude']?.toString() ?? 'N/A';
+    final latitude = sosData['latitude']?.toString() ?? 'N/A';
 
-    final longitude =
-        sosData['longitude']?.toString() ?? 'N/A';
+    final longitude = sosData['longitude']?.toString() ?? 'N/A';
 
     final touristName =
-        sosData['touristName']?.toString() ?? 'Unknown';
+        sosData['name']?.toString() ??
+        sosData['fullName']?.toString() ??
+        sosData['touristName']?.toString() ??
+        'Unknown';
 
-    final email =
-        sosData['email']?.toString() ?? 'N/A';
+    final email = sosData['email']?.toString() ?? 'N/A';
 
-    final phone =
-        sosData['phone']?.toString() ?? 'N/A';
+    final phone = sosData['phone']?.toString() ?? 'N/A';
 
-    final createdAt = sosData['createdAt'];
-    final timestamp = createdAt is Timestamp ? createdAt : null;
+    final timestampValue = sosData['timestamp'] ?? sosData['createdAt'];
+
+    final timestamp = timestampValue is Timestamp ? timestampValue : null;
 
     final dateText = timestamp != null
         ? _formatDate(timestamp.toDate())
@@ -53,11 +49,7 @@ class SosDetailsScreen extends StatelessWidget {
                 color: Colors.red,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.sos,
-                color: Colors.white,
-                size: 60,
-              ),
+              child: const Icon(Icons.sos, color: Colors.white, size: 60),
             ),
 
             const SizedBox(height: 20),
@@ -91,17 +83,9 @@ class SosDetailsScreen extends StatelessWidget {
               value: touristName,
             ),
 
-            _detailCard(
-              icon: Icons.email,
-              title: 'Email',
-              value: email,
-            ),
+            _detailCard(icon: Icons.email, title: 'Email', value: email),
 
-            _detailCard(
-              icon: Icons.phone,
-              title: 'Phone',
-              value: phone,
-            ),
+            _detailCard(icon: Icons.phone, title: 'Phone', value: phone),
 
             _detailCard(
               icon: Icons.location_on,
@@ -125,18 +109,12 @@ class SosDetailsScreen extends StatelessWidget {
                 },
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.red,
-                  side: const BorderSide(
-                    color: Colors.red,
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 15,
-                  ),
+                  side: const BorderSide(color: Colors.red),
+                  padding: const EdgeInsets.symmetric(vertical: 15),
                 ),
                 child: const Text(
                   'BACK TO SOS HISTORY',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -158,28 +136,19 @@ class SosDetailsScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: Colors.red.shade100,
-        ),
+        border: Border.all(color: Colors.red.shade100),
       ),
       child: Row(
         children: [
-          Icon(
-            icon,
-            color: Colors.red,
-          ),
+          Icon(icon, color: Colors.red),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey,
-                  ),
+                  style: const TextStyle(fontSize: 13, color: Colors.grey),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -198,20 +167,15 @@ class SosDetailsScreen extends StatelessWidget {
   }
 
   static String _formatDate(DateTime date) {
-    final day =
-        date.day.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
 
-    final month =
-        date.month.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
 
-    final year =
-        date.year.toString();
+    final year = date.year.toString();
 
-    final hour =
-        date.hour.toString().padLeft(2, '0');
+    final hour = date.hour.toString().padLeft(2, '0');
 
-    final minute =
-        date.minute.toString().padLeft(2, '0');
+    final minute = date.minute.toString().padLeft(2, '0');
 
     return '$day/$month/$year $hour:$minute';
   }

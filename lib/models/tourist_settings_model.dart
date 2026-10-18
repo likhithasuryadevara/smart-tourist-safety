@@ -123,10 +123,7 @@ enum TouristSetting {
 
 enum TouristNotificationCategory { safety, sos, admin }
 
-bool shouldSurfaceNotification(
-  String type,
-  TouristSettingsModel settings,
-) {
+bool shouldSurfaceNotification(String type, TouristSettingsModel settings) {
   switch (type.toLowerCase()) {
     case 'safe_zone':
     case 'danger_zone':

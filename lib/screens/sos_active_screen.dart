@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'sos_progress_screen.dart';
 import 'sos_success_screen.dart';
 
@@ -58,12 +59,9 @@ class SosActiveScreen extends StatelessWidget {
                 const SizedBox(height: 16),
 
                 const Text(
-                  'Your emergency request has been sent successfully.',
+                  'Your SOS request has been created successfully.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.black87,
-                  ),
+                  style: TextStyle(fontSize: 18, color: Colors.black87),
                 ),
 
                 const SizedBox(height: 30),
@@ -74,16 +72,14 @@ class SosActiveScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Colors.red.shade200,
-                    ),
+                    border: Border.all(color: Colors.red.shade200),
                   ),
                   child: const Column(
                     children: [
                       _StatusRow(
                         icon: Icons.check_circle,
                         title: 'SOS Request',
-                        value: 'Sent',
+                        value: 'Created',
                       ),
                       SizedBox(height: 18),
                       _StatusRow(
@@ -104,12 +100,9 @@ class SosActiveScreen extends StatelessWidget {
                 const SizedBox(height: 30),
 
                 const Text(
-                  'Please remain in a safe location and wait for emergency assistance.',
+                  'Please remain in a safe location while your request is active.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.black54,
-                  ),
+                  style: TextStyle(fontSize: 16, color: Colors.black54),
                 ),
 
                 SizedBox(
@@ -125,9 +118,7 @@ class SosActiveScreen extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 16,
-                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     child: const Text(
                       'VIEW SOS PROGRESS',
@@ -140,7 +131,7 @@ class SosActiveScreen extends StatelessWidget {
                 ),
 
                 const SizedBox(height: 12),
-                
+
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -154,9 +145,7 @@ class SosActiveScreen extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 16,
-                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     child: const Text(
                       'VIEW SOS SUCCESS',
@@ -180,13 +169,8 @@ class SosActiveScreen extends StatelessWidget {
                     },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.red,
-                      side: const BorderSide(
-                        color: Colors.red,
-                        width: 2,
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 16,
-                      ),
+                      side: const BorderSide(color: Colors.red, width: 2),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     child: const Text(
                       'BACK TO DASHBOARD',
@@ -221,19 +205,12 @@ class _StatusRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(
-          icon,
-          color: Colors.red,
-          size: 28,
-        ),
+        Icon(icon, color: Colors.red, size: 28),
         const SizedBox(width: 14),
         Expanded(
           child: Text(
             title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
         ),
         Text(

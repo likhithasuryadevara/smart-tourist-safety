@@ -55,7 +55,11 @@ class _TouristProfileState extends State<TouristProfile> {
         _loadError = doc.exists ? null : StateError('Profile not found');
       });
     } catch (error, stackTrace) {
-      AppErrorMessage.log(error, stackTrace, context: 'Loading tourist profile');
+      AppErrorMessage.log(
+        error,
+        stackTrace,
+        context: 'Loading tourist profile',
+      );
       if (!mounted) return;
 
       setState(() {
@@ -70,34 +74,19 @@ class _TouristProfileState extends State<TouristProfile> {
     final user = FirebaseAuth.instance.currentUser;
 
     final name =
-        _userData?['name']?.toString() ??
-        user?.displayName ??
-        'Tourist';
+        _userData?['name']?.toString() ?? user?.displayName ?? 'Tourist';
 
-    final email =
-        _userData?['email']?.toString() ??
-        user?.email ??
-        '';
+    final email = _userData?['email']?.toString() ?? user?.email ?? '';
 
-    final phone =
-        _userData?['phone']?.toString() ??
-        'Not provided';
+    final phone = _userData?['phone']?.toString() ?? 'Not provided';
 
-    final nationality =
-        _userData?['nationality']?.toString() ??
-        'Not provided';
+    final nationality = _userData?['nationality']?.toString() ?? 'Not provided';
 
-    final bloodGroup =
-        _userData?['bloodGroup']?.toString() ??
-        'Not provided';
+    final bloodGroup = _userData?['bloodGroup']?.toString() ?? 'Not provided';
 
-    final status =
-        _userData?['accountStatus']?.toString() ??
-        'active';
+    final status = _userData?['accountStatus']?.toString() ?? 'active';
 
-    final approval =
-        _userData?['approvalStatus']?.toString() ??
-        'pending';
+    final approval = _userData?['approvalStatus']?.toString() ?? 'pending';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -114,7 +103,8 @@ class _TouristProfileState extends State<TouristProfile> {
               message: _userData == null
                   ? AppErrorMessage.from(
                       _loadError!,
-                      fallback: 'Unable to load your profile. Please try again.',
+                      fallback:
+                          'Unable to load your profile. Please try again.',
                     )
                   : 'Unable to refresh your profile. Please try again.',
               onRetry: _loadProfile,
@@ -123,28 +113,23 @@ class _TouristProfileState extends State<TouristProfile> {
               padding: const EdgeInsets.all(24),
               child: Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    maxWidth: 800,
-                  ),
+                  constraints: const BoxConstraints(maxWidth: 800),
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
                           color: const Color(0xFF111C31),
-                          borderRadius:
-                              BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(16),
                         ),
                         child: Row(
                           children: [
                             Container(
                               width: 64,
                               height: 64,
-                              decoration:
-                                  const BoxDecoration(
+                              decoration: const BoxDecoration(
                                 color: Color(0xFF0F766E),
                                 shape: BoxShape.circle,
                               ),
@@ -157,26 +142,21 @@ class _TouristProfileState extends State<TouristProfile> {
                             const SizedBox(width: 16),
                             Expanded(
                               child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     name,
-                                    style:
-                                        const TextStyle(
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 22,
-                                      fontWeight:
-                                          FontWeight.bold,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
                                     email,
-                                    style:
-                                        const TextStyle(
-                                      color:
-                                          Color(0xFF94A3B8),
+                                    style: const TextStyle(
+                                      color: Color(0xFF94A3B8),
                                     ),
                                   ),
                                 ],
@@ -188,17 +168,9 @@ class _TouristProfileState extends State<TouristProfile> {
 
                       const SizedBox(height: 20),
 
-                      _profileRow(
-                        'Phone',
-                        phone,
-                        Icons.phone_outlined,
-                      ),
+                      _profileRow('Phone', phone, Icons.phone_outlined),
 
-                      _profileRow(
-                        'Nationality',
-                        nationality,
-                        Icons.public,
-                      ),
+                      _profileRow('Nationality', nationality, Icons.public),
 
                       _profileRow(
                         'Blood Group',
@@ -260,8 +232,12 @@ class _TouristProfileState extends State<TouristProfile> {
             if (!hasContact)
               const Text('No emergency contacts added.')
             else ...[
-              Text('Name: ${emergencyName.isEmpty ? 'Not provided' : emergencyName}'),
-              Text('Phone: ${emergencyPhone.isEmpty ? 'Not provided' : emergencyPhone}'),
+              Text(
+                'Name: ${emergencyName.isEmpty ? 'Not provided' : emergencyName}',
+              ),
+              Text(
+                'Phone: ${emergencyPhone.isEmpty ? 'Not provided' : emergencyPhone}',
+              ),
               if (emergencyRelationship.isNotEmpty)
                 Text('Relationship: $emergencyRelationship'),
             ],
@@ -282,18 +258,12 @@ class _TouristProfileState extends State<TouristProfile> {
   void _editProfile() {
     showDialog(
       context: context,
-      builder: (context) => EditProfileDialog(
-        userData: _userData,
-        onSaved: _loadProfile,
-      ),
+      builder: (context) =>
+          EditProfileDialog(userData: _userData, onSaved: _loadProfile),
     );
   }
 
-  Widget _profileRow(
-    String title,
-    String value,
-    IconData icon,
-  ) {
+  Widget _profileRow(String title, String value, IconData icon) {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 12),
@@ -301,21 +271,15 @@ class _TouristProfileState extends State<TouristProfile> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFFE5E7EB),
-        ),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
       child: Row(
         children: [
-          Icon(
-            icon,
-            color: const Color(0xFF0F766E),
-          ),
+          Icon(icon, color: const Color(0xFF0F766E)),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,

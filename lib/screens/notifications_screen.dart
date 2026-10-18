@@ -1,11 +1,17 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:rxdart/rxdart.dart';
 
+import '../models/notification_item.dart';
 import '../models/tourist_settings_model.dart';
+import '../services/notification_read_state_service.dart';
 import '../services/tourist_settings_service.dart';
 import '../utils/app_error_message.dart';
 import '../widgets/app_state_widgets.dart';
+import '../widgets/notification_card.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -15,8 +21,10 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  late Stream<QuerySnapshot> _notifications;
-  final Set<String> _updatingReadStatus = {};
+  final NotificationReadStateService _readState =
+      NotificationReadStateService.shared;
+
+  late Stream<List<NotificationItem>> _notifications;
 
   @override
   void initState() {
@@ -24,14 +32,142 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     _createNotificationsStream();
   }
 
+  bool _isRead(NotificationItem notification) => _readState.isRead(
+    notification.id,
+    persistedIsRead: notification.isRead,
+  );
+
   void _createNotificationsStream() {
     final user = FirebaseAuth.instance.currentUser;
-    _notifications = user == null
-        ? const Stream.empty()
-        : FirebaseFirestore.instance
-              .collection('notifications')
-              .where('touristId', isEqualTo: user.uid)
-              .snapshots();
+    if (user == null) {
+      _notifications = Stream.value(const []);
+      return;
+    }
+
+    final sosStream = FirebaseFirestore.instance
+        .collection('sos_alerts')
+        .where('userId', isEqualTo: user.uid)
+        .snapshots();
+
+    final geoFenceStream = FirebaseFirestore.instance
+        .collection('geo_fence_alerts')
+        .where('userId', isEqualTo: user.uid)
+        .snapshots();
+
+    _notifications = Rx.combineLatest2(sosStream, geoFenceStream, (
+      QuerySnapshot<Map<String, dynamic>> sosSnapshot,
+      QuerySnapshot<Map<String, dynamic>> geoFenceSnapshot,
+    ) {
+      final notifications = <NotificationItem>[];
+
+      for (final doc in sosSnapshot.docs) {
+        final data = doc.data();
+        final status = data['status']?.toString().toLowerCase() ?? '';
+        final timestamp = data['timestamp'] ?? data['createdAt'];
+
+        if (status == 'active') {
+          notifications.add(
+            NotificationItem(
+              id: 'sos:${doc.id}',
+              type: 'sos',
+              title: 'SOS Confirmation',
+              message: 'Your SOS request has been created.',
+              createdAt: timestamp is Timestamp ? timestamp : null,
+              isRead: false,
+            ),
+          );
+        } else if (status == 'acknowledged') {
+          notifications.add(
+            NotificationItem(
+              id: 'sos_ack:${doc.id}',
+              type: 'sos_acknowledged',
+              title: 'SOS Acknowledged',
+              message:
+                  'Your SOS has been acknowledged. Help is being coordinated.',
+              createdAt: timestamp is Timestamp ? timestamp : null,
+              isRead: false,
+            ),
+          );
+        } else if (status == 'resolved') {
+          notifications.add(
+            NotificationItem(
+              id: 'sos_resolved:${doc.id}',
+              type: 'sos_resolved',
+              title: 'SOS Resolved',
+              message: 'Your SOS incident has been resolved.',
+              createdAt: timestamp is Timestamp ? timestamp : null,
+              isRead: false,
+            ),
+          );
+        }
+      }
+
+      for (final doc in geoFenceSnapshot.docs) {
+        final data = doc.data();
+        final eventType = data['eventType']?.toString() ?? '';
+        final zoneType = data['zoneType']?.toString() ?? '';
+        final zoneName = data['safeZoneName']?.toString() ?? 'Unknown zone';
+        final timestamp = data['timestamp'];
+        final status = data['status']?.toString() ?? 'Unread';
+
+        String type;
+        String title;
+        String message;
+
+        if (eventType == 'ENTER') {
+          if (zoneType == 'Safe') {
+            type = 'safe_zone';
+            title = 'Safe Zone Entered';
+            message = 'You have entered $zoneName.';
+          } else if (zoneType == 'Danger') {
+            type = 'danger_zone';
+            title = 'Danger Zone Alert';
+            message = 'You have entered $zoneName. Please exercise caution.';
+          } else {
+            type = 'safe_zone';
+            title = 'Zone Entered';
+            message = 'You have entered $zoneName.';
+          }
+        } else if (eventType == 'EXIT') {
+          if (zoneType == 'Safe') {
+            type = 'zone_exit';
+            title = 'Safe Zone Exited';
+            message = 'You have left $zoneName.';
+          } else if (zoneType == 'Danger') {
+            type = 'danger_zone';
+            title = 'Danger Zone Exited';
+            message = 'You have left $zoneName.';
+          } else {
+            type = 'zone_exit';
+            title = 'Zone Exited';
+            message = 'You have left $zoneName.';
+          }
+        } else {
+          continue;
+        }
+
+        notifications.add(
+          NotificationItem(
+            id: 'geo:${doc.id}',
+            type: type,
+            title: title,
+            message: message,
+            createdAt: timestamp is Timestamp ? timestamp : null,
+            isRead: status == 'Read',
+          ),
+        );
+      }
+
+      notifications.sort((a, b) {
+        final aTime = a.createdAt;
+        final bTime = b.createdAt;
+        if (aTime == null) return bTime == null ? 0 : 1;
+        if (bTime == null) return -1;
+        return bTime.compareTo(aTime);
+      });
+
+      return notifications;
+    });
   }
 
   Future<void> _retry() async {
@@ -58,7 +194,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         builder: (context, settingsSnapshot) {
           final settings =
               settingsSnapshot.data ?? const TouristSettingsModel();
-          return StreamBuilder<QuerySnapshot>(
+          return StreamBuilder<List<NotificationItem>>(
             stream: _notifications,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -77,15 +213,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 );
               }
 
-              final docs = (snapshot.data?.docs ?? []).where((doc) {
-                final data = doc.data() as Map<String, dynamic>;
-                return shouldSurfaceNotification(
-                  data['type']?.toString() ?? 'general',
-                  settings,
-                );
+              final notifications = (snapshot.data ?? []).where((n) {
+                return shouldSurfaceNotification(n.type, settings);
               }).toList();
 
-              if (docs.isEmpty) {
+              if (notifications.isEmpty) {
                 return const AppEmptyState(
                   message: 'No Notifications\nYour safety notifications will appear here.',
                   icon: Icons.notifications_none,
@@ -94,96 +226,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
               return ListView.builder(
                 padding: const EdgeInsets.all(16),
-                itemCount: docs.length,
+                itemCount: notifications.length,
                 itemBuilder: (context, index) {
-                  final data = docs[index].data() as Map<String, dynamic>;
+                  final n = notifications[index];
 
-                  final title = data['title']?.toString() ?? 'Notification';
-
-                  final message = data['message']?.toString() ?? '';
-
-                  final type = data['type']?.toString() ?? 'general';
-
-                  final isRead = data['isRead'] == true;
-
-                  final createdAt = data['createdAt'];
-                  final timestamp = createdAt is Timestamp ? createdAt : null;
-
-                  final dateText = timestamp != null
-                      ? _formatDate(timestamp.toDate())
-                      : 'Date unavailable';
-
-                  return InkWell(
-                    onTap: isRead || _updatingReadStatus.contains(docs[index].id)
-                        ? null
-                        : () => _markRead(docs[index].id),
-                    child: Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      color: isRead ? Colors.white : const Color(0xFFE6FFFA),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(
-                              _notificationIcon(type),
-                              color: Colors.teal,
-                              size: 28,
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    title,
-                                    style: TextStyle(
-                                      fontSize: 17,
-                                      fontWeight: isRead
-                                          ? FontWeight.w600
-                                          : FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    message,
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    dateText,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            if (_updatingReadStatus.contains(docs[index].id))
-                              const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            else if (!isRead)
-                              Container(
-                                width: 9,
-                                height: 9,
-                                decoration: const BoxDecoration(
-                                  color: Colors.teal,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
+                  return NotificationCard(
+                    notification: n.withReadState(isRead: _isRead(n)),
+                    onOpen: () => _markRead(n),
                   );
                 },
               );
@@ -194,76 +243,46 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  Future<void> _markRead(String notificationId) async {
-    if (_updatingReadStatus.contains(notificationId)) return;
-    setState(() => _updatingReadStatus.add(notificationId));
+  Future<void> _markRead(NotificationItem n) async {
+    // Hide the unread indicator as soon as the notification is opened.
+    _readState.markRead(n.id);
+    if (!mounted) return;
+    setState(() {});
+
+    // `geo_fence_alerts` is the only existing collection with a read state, so
+    // only those notifications are persisted. `sos_alerts` documents have no
+    // read field in the existing schema, so their read state stays in the
+    // current session instead of inventing a new field.
+    if (!n.id.startsWith('geo:')) return;
+
+    final docId = n.id.substring(4);
     try {
       await FirebaseFirestore.instance
-          .collection('notifications')
-          .doc(notificationId)
-          .update({'isRead': true});
+          .collection('geo_fence_alerts')
+          .doc(docId)
+          .update({'status': 'Read'});
     } catch (error, stackTrace) {
+      // Keep the visible state consistent with the persisted state.
+      _readState.revertRead(n.id);
       AppErrorMessage.log(
         error,
         stackTrace,
-        context: 'Marking notification as read',
+        context: 'Marking geofence alert as read',
       );
       if (mounted) {
+        setState(() {});
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               AppErrorMessage.from(
                 error,
-                fallback: 'Unable to update this notification. Please try again.',
+                fallback:
+                    'Unable to update this notification. Please try again.',
               ),
             ),
           ),
         );
       }
-    } finally {
-      if (mounted) setState(() => _updatingReadStatus.remove(notificationId));
-    }
-  }
-
-  static String _formatDate(DateTime date) {
-    final day = date.day.toString().padLeft(2, '0');
-
-    final month = date.month.toString().padLeft(2, '0');
-
-    final year = date.year.toString();
-
-    final hour = date.hour.toString().padLeft(2, '0');
-
-    final minute = date.minute.toString().padLeft(2, '0');
-
-    return '$day/$month/$year $hour:$minute';
-  }
-
-  static IconData _notificationIcon(String type) {
-    switch (type.toLowerCase()) {
-      case 'safe_zone':
-        return Icons.shield_outlined;
-
-      case 'danger_zone':
-        return Icons.warning_amber_rounded;
-
-      case 'zone_exit':
-        return Icons.location_off_outlined;
-
-      case 'sos':
-        return Icons.sos;
-
-      case 'sos_acknowledged':
-        return Icons.check_circle_outline;
-
-      case 'sos_resolved':
-        return Icons.verified_outlined;
-
-      case 'admin':
-        return Icons.admin_panel_settings_outlined;
-
-      default:
-        return Icons.notifications_outlined;
     }
   }
 }
